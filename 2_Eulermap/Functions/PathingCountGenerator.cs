@@ -567,9 +567,9 @@ namespace Brieffreund.Eulermap.Functions
                 {
                     List<Intersection> other = sets[i];
                     IPathfinder<Intersection, SegmentPathway> path = IPathfinder.FindPath<Intersection, SegmentPathway>(first[0], other[0], w => PathWeightFunc(w, map));
-                    float length = GetLength(best, map);
+                    float length = GetLength(path, map);
 
-                    if (length < bestLength)
+                    if (path.Success && (!best.Success || length < bestLength))
                     {
                         toConnect = other;
                         best = path;

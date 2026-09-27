@@ -114,7 +114,7 @@ namespace Brieffreund.Analyser
                         }
                         else
                         {
-                            addressList.RemoveAt(j);
+                            addressList.RemoveAt(i);
                         }
 
                         break;

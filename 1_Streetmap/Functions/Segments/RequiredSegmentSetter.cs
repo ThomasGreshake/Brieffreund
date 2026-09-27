@@ -136,9 +136,9 @@ namespace Brieffreund.Streetmap.Functions
                 {
                     List<Intersection> other = sets[i];
                     IPathfinder<Intersection, SegmentPathway> path = IPathfinder.FindPath<Intersection, SegmentPathway>(first[0], other[0], PathWeightFunc);
-                    float length = GetLength(best);
+                    float length = GetLength(path);
 
-                    if (length < bestLength)
+                    if (path.Success && (!best.Success || length < bestLength))
                     {
                         toConnect = other;
                         best = path;
