@@ -11,9 +11,11 @@ namespace Brieffreund.AStar
         public bool Success => _success;
 
         private readonly IList<N> _nodes;
+        private readonly Dictionary<N, int> _nodeIndices;
         private readonly PathNodeData[] _nodeData;
 
         private readonly IList<P> _pathways;
+        private readonly Dictionary<P, int> _wayIndices;
         private readonly PathwayData[] _wayData;
 
         private IPriorityQueue<int> _openSet = new SimplePriorityQueue<int>();
@@ -31,8 +33,15 @@ namespace Brieffreund.AStar
             _nodes = nodes;
             _nodeData = new PathNodeData[nodes.Count];
 
+            _nodeIndices = new Dictionary<N, int>(nodes.Count);
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                _nodeIndices[nodes[i]] = i;
+            }
+
             int estimatedWayCount = nodes.Count * 2;
             _pathways = new List<P>(estimatedWayCount);
+            _wayIndices = new Dictionary<P, int>(estimatedWayCount);
             List<PathwayData> wayDataList = new List<PathwayData>(estimatedWayCount);
             for (int i = 0; i < nodes.Count; i++)
             {
@@ -43,9 +52,11 @@ namespace Brieffreund.AStar
                 for (int j = 0; j < nodePaths.Count; j++)
                 {
                     P pathway = nodePaths[j];
-                    float pathCost = pathCostMultFunc(pathway) * pathway.Length;
+                    float pathCost = GetCost(pathway, pathCostMultFunc);
+                    int towardsIndex = _nodeIndices.TryGetValue(pathway.Towards, out int t) ? t : -1;
 
-                    PathwayData wayData = new PathwayData(_pathways.Count, i, nodes.IndexOf(pathway.Towards), pathCost);
+                    PathwayData wayData = new PathwayData(_pathways.Count, i, towardsIndex, pathCost);
+                    _wayIndices[pathway] = _pathways.Count;
                     _pathways.Add(pathway);
                     wayDataList.Add(wayData);
                 }
@@ -60,6 +71,8 @@ namespace Brieffreund.AStar
         internal NodeGraph(NodeGraph<N, P> graph)
         {
             _nodes = graph._nodes;
+            _nodeIndices = graph._nodeIndices;
+            _wayIndices = graph._wayIndices;
             _nodeData = new PathNodeData[_nodes.Count];
             for (int i = 0; i < _nodeData.Length; i++)
             {
@@ -77,23 +90,22 @@ namespace Brieffreund.AStar
             Clear();
         }
 
+        //Returns a copy of the result, so it stays valid after the next search on this graph
         public IPathfinder<N, P> FindPath(N start, N end)
+        {
+            Search(start, end);
+            return new PathResult(_success, _path.ToList());
+        }
+
+        private void Search(N start, N end)
         {
             Clear();
             _cleared = false;
 
-            int startIndex = _nodes.IndexOf(start);
-            if (startIndex < 0)
+            if (!_nodeIndices.TryGetValue(start, out int startIndex) || !_nodeIndices.TryGetValue(end, out int endIndex))
             {
                 _success = false;
-                return this;
-            }
-
-            int endIndex = _nodes.IndexOf(end);
-            if (endIndex < 0)
-            {
-                _success = false;
-                return this;
+                return;
             }
 
             PathNodeData[] nodeData = _nodeData;
@@ -122,7 +134,7 @@ namespace Brieffreund.AStar
                             + $"(ended at node index {last.Index} at {last.Position}, expected {startIndex}).");
                     }
 
-                    return this;
+                    return;
                 }
 
                 current.IsClosed = true;
@@ -168,13 +180,11 @@ namespace Brieffreund.AStar
             }
 
             _success = false;
-            return this;
         }
 
         public void ChangePathcost(P path, float cost)
         {
-            int index = _pathways.IndexOf(path);
-            if (index < 0)
+            if (!_wayIndices.TryGetValue(path, out int index))
             {
                 return;
             }
@@ -183,14 +193,14 @@ namespace Brieffreund.AStar
             _wayData[index] = new PathwayData(data.Index, data.OriginIndex, data.TowardsIndex, cost);
         }
 
-        public void ChangePathcost(P path, Func<P, float> pathCostMultFunc) => ChangePathcost(path, pathCostMultFunc(path) * path.Length);
+        public void ChangePathcost(P path, Func<P, float> pathCostMultFunc) => ChangePathcost(path, GetCost(path, pathCostMultFunc));
 
         public void ChangePathcosts(Func<P, float> pathCostMultFunc)
         {
             for (int i = 0; i < _pathways.Count; i++)
             {
                 P path = _pathways[i];
-                float cost = pathCostMultFunc(path) * path.Length;
+                float cost = GetCost(path, pathCostMultFunc);
                 PathwayData wayData = _wayData[i];
                 _wayData[i] = new PathwayData(wayData.Index, wayData.OriginIndex, wayData.TowardsIndex, cost);
             }
@@ -232,9 +242,17 @@ namespace Brieffreund.AStar
             return current;
         }
 
+        //Negative mult => exclude path, same as the other pathfinders. Kept negative even for zero-length paths.
+        private static float GetCost(P path, Func<P, float> pathCostMultFunc)
+        {
+            float mult = pathCostMultFunc(path);
+            return mult < 0 ? -1f : mult * path.Length;
+        }
+
         private static List<N> FloodFill(N node)
         {
             List<N> nodes = new();
+            HashSet<N> seen = new() { node };
             List<N> front = new() { node };
 
             while (front.Count > 0)
@@ -247,15 +265,30 @@ namespace Brieffreund.AStar
                 for (int i = 0; i < paths.Count; i++)
                 {
                     N other = paths[i].Towards;
-                    if (front.Contains(other) || nodes.Contains(other))
+                    if (seen.Add(other))
                     {
-                        continue;
+                        front.Add(other);
                     }
-                    front.Add(other);
                 }
             }
 
             return nodes;
+        }
+
+        private class PathResult : IPathfinder<N, P>
+        {
+            private readonly List<P> _path;
+            public P this[int index] => _path[_path.Count - index - 1];
+            public int Count => _path.Count;
+
+            private readonly bool _success;
+            public bool Success => _success;
+
+            internal PathResult(bool success, List<P> path)
+            {
+                _success = success;
+                _path = path;
+            }
         }
 
         private struct PathNodeData

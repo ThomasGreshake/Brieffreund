@@ -1,5 +1,6 @@
 ﻿//Copyright Thomas Greshake 2026
 
+using Brieffreund.AStar;
 using System.Diagnostics;
 using System.Numerics;
 
@@ -508,6 +509,7 @@ namespace Brieffreund.Routemap.Functions
             }
 
             Dictionary<EulerPathway, PathLoop> wayToLoop = GetWayToLoop(count);
+            NodeGraph<EulerNode, EulerPathway> nodeGraph = new(_map.Nodes.Values.ToList(), w => PathWeightFunc(w, wayToLoop));
 
             while (loopScores.Count > 0)
             {
@@ -515,7 +517,7 @@ namespace Brieffreund.Routemap.Functions
                 loopScores.Remove(current);
 
                 List<EulerPathway>? pathToStorage =
-                    GetPathToStorage(current, storages, wayToLoop, mailSinceStorage, mailTowardsStorage, acceptableMail, inacceptableMail);
+                    GetPathToStorage(current, storages, wayToLoop, nodeGraph, mailSinceStorage, mailTowardsStorage, acceptableMail, inacceptableMail);
 
                 if (pathToStorage == null)
                 {
@@ -640,7 +642,7 @@ namespace Brieffreund.Routemap.Functions
         }
 
         private List<EulerPathway>? GetPathToStorage(PathLoop current, Dictionary<EulerNode, int> storages, Dictionary<EulerPathway, PathLoop> wayToLoop,
-            Dictionary<EulerPathway, int> mailSinceStorage, Dictionary<EulerPathway, int> mailTowardsStorage,
+            NodeGraph<EulerNode, EulerPathway> nodeGraph, Dictionary<EulerPathway, int> mailSinceStorage, Dictionary<EulerPathway, int> mailTowardsStorage,
             float acceptableMail, float inacceptableMail)
         {
             List<EulerPathway>? bestPath = null;
@@ -669,8 +671,7 @@ namespace Brieffreund.Routemap.Functions
                 float bestLength = float.MaxValue;
                 foreach (EulerNode storage in storages.Keys)
                 {
-                    IPathfinder<EulerNode, EulerPathway> path = IPathfinder.FindPath<EulerNode, EulerPathway>(way.Towards, storage,
-                       w => PathWeightFunc(w, wayToLoop));
+                    IPathfinder<EulerNode, EulerPathway> path = nodeGraph.FindPath(way.Towards, storage);
 
                     if (!path.Success || path.Count == 0)
                     {

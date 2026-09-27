@@ -1,5 +1,7 @@
 ﻿//Copyright Thomas Greshake 2026
 
+using Brieffreund.AStar;
+
 namespace Brieffreund.Streetmap
 {
     internal interface IStreetSegmentDisabler
@@ -62,6 +64,7 @@ namespace Brieffreund.Streetmap.Functions
             }
 
             List<Intersection> allEdgeNodes = _map.Intersections.Values.Where(i => IsEdgeNode(i, condition)).ToList();
+            NodeGraph<Intersection, SegmentPathway> nodeGraph = new(_map.GetAllIntersections().ToList(), w => 1f);
 
             while (allEdgeNodes.Count > 0)
             {
@@ -80,8 +83,7 @@ namespace Brieffreund.Streetmap.Functions
                 {
                     for (int j = i + 1; j < edgeNodes.Count; j++)
                     {
-                        IPathfinder<Intersection, SegmentPathway> path =
-                            IPathfinder.FindPath<Intersection, SegmentPathway>(edgeNodes[i], edgeNodes[j]);
+                        IPathfinder<Intersection, SegmentPathway> path = nodeGraph.FindPath(edgeNodes[i], edgeNodes[j]);
 
                         if (!path.Success)
                         {

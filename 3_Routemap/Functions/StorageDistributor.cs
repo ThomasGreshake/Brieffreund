@@ -1,5 +1,7 @@
 ﻿//Copyright Thomas Greshake 2026
 
+using Brieffreund.AStar;
+
 namespace Brieffreund.Routemap
 {
     internal interface IStorageDistributor : IEvent<IStorageDistributor>
@@ -27,6 +29,7 @@ namespace Brieffreund.Routemap.Functions
         public void DistributeStorages()
         {
             IStreetMap map = _map.EulerMap.Streetmap;
+            NodeGraph<StreetNode, StreetPathway> nodeGraph = new(map.GetAllNodes().ToList(), w => 1f);
 
             foreach (Storage storage in map.Storages)
             {
@@ -38,29 +41,32 @@ namespace Brieffreund.Routemap.Functions
                         continue;
                     }
 
-                    AddStorage(node, storage);
+                    AddStorage(nodeGraph, node, storage);
                 }
             }
 
             IStorageDistributor.Call(this);
         }
 
-        private void AddStorage(EulerNode node, Storage storage)
+        private void AddStorage(NodeGraph<StreetNode, StreetPathway> nodeGraph, EulerNode eulerNode, Storage storage)
         {
-            foreach (RouteNode rn in _map.GetNodes(node))
-            {
-                AddStorage(rn, storage);
-            }
-        }
-
-        private void AddStorage(RouteNode rn, Storage storage)
-        {
-            StreetNode node = rn.Eulernode.Intersection.Streetnode;
-            IPathfinder<StreetNode, StreetPathway> path = IPathfinder.FindPath<StreetNode, StreetPathway>(node, storage.ClosestNode);
+            //All route nodes of an euler node share the same street node, so one search serves them all
+            StreetNode node = eulerNode.Intersection.Streetnode;
+            IPathfinder<StreetNode, StreetPathway> path = nodeGraph.FindPath(node, storage.ClosestNode);
             if (!path.Success)
             {
                 throw new InvalidOperationException($"No path found from route node at {node.Position} to storage at {storage.ClosestNode.Position}.");
             }
+
+            foreach (RouteNode rn in _map.GetNodes(eulerNode))
+            {
+                AddStorage(rn, storage, path);
+            }
+        }
+
+        private void AddStorage(RouteNode rn, Storage storage, IPathfinder<StreetNode, StreetPathway> path)
+        {
+            StreetNode node = rn.Eulernode.Intersection.Streetnode;
 
             StreetPathway pointerWay = rn.Pointer.GetIncomingWay();
             bool pointerIsLeft = rn.Pointer.LeftOfWay(false) == true;

@@ -1,5 +1,7 @@
 ﻿//Copyright Thomas Greshake 2026
 
+using Brieffreund.AStar;
+
 namespace Brieffreund.Analyser
 {
     internal class RouteAnalysis
@@ -42,16 +44,17 @@ namespace Brieffreund.Analyser
 
         private static RouteAnalysis Create(IUserInput input, AnalyserMap map, IList<Tuple<Address, bool>> addresses)
         {
-            List<Tuple<AnalyserNode, bool>> nodes = ConvertList(map, addresses);
+            NodeGraph<AnalyserNode, AnalyserPathway> nodeGraph = new(map.Nodes, w => 1f);
+            List<Tuple<AnalyserNode, bool>> nodes = ConvertList(map, nodeGraph, addresses);
             List<AnalyserPathway> ways = new(128);
 
+            nodeGraph.ChangePathcosts(w => w.RightOfWay ? 1f : 1.01f);
             for (int i = 0; i < nodes.Count - 1; i++)
             {
                 var current = nodes[i];
                 var next = nodes[i + 1];
 
-                IPathfinder<AnalyserNode, AnalyserPathway> path =
-                    IPathfinder.FindPath<AnalyserNode, AnalyserPathway>(current.Item1, next.Item1, w => w.RightOfWay ? 1f : 1.01f);
+                IPathfinder<AnalyserNode, AnalyserPathway> path = nodeGraph.FindPath(current.Item1, next.Item1);
                 ways.AddRange(path.GetPaths());
             }
 
@@ -66,7 +69,8 @@ namespace Brieffreund.Analyser
             return analysis;
         }
 
-        private static List<Tuple<AnalyserNode, bool>> ConvertList(AnalyserMap map, IList<Tuple<Address, bool>> addresses)
+        private static List<Tuple<AnalyserNode, bool>> ConvertList(AnalyserMap map, NodeGraph<AnalyserNode, AnalyserPathway> nodeGraph,
+            IList<Tuple<Address, bool>> addresses)
         {
             List<Tuple<Address, bool>> addressList = new(addresses.Count);
             AnalyserNode? lastNode = null;
@@ -105,8 +109,8 @@ namespace Brieffreund.Analyser
 
                         removedDuplicate = true;
 
-                        float currScore = GetDistanceToNeighbours(map, addressList, i);
-                        float otherScore = GetDistanceToNeighbours(map, addressList, j);
+                        float currScore = GetDistanceToNeighbours(map, nodeGraph, addressList, i);
+                        float otherScore = GetDistanceToNeighbours(map, nodeGraph, addressList, j);
 
                         if (currScore < otherScore)
                         {
@@ -148,7 +152,8 @@ namespace Brieffreund.Analyser
             return nodeList;
         }
 
-        private static float GetDistanceToNeighbours(AnalyserMap map, List<Tuple<Address, bool>> list, int index)
+        private static float GetDistanceToNeighbours(AnalyserMap map, NodeGraph<AnalyserNode, AnalyserPathway> nodeGraph,
+            List<Tuple<Address, bool>> list, int index)
         {
             AnalyserNode? currNode = map.GetNode(list[index].Item1);
             if (currNode == null)
@@ -163,7 +168,7 @@ namespace Brieffreund.Analyser
                 AnalyserNode? prevNode = map.GetNode(list[index - 1].Item1);
                 if (prevNode != null)
                 {
-                    IPathfinder<AnalyserNode, AnalyserPathway> path = IPathfinder.FindPath<AnalyserNode, AnalyserPathway>(currNode, prevNode);
+                    IPathfinder<AnalyserNode, AnalyserPathway> path = nodeGraph.FindPath(currNode, prevNode);
                     distance += path.GetLength();
                 }
             }
@@ -173,7 +178,7 @@ namespace Brieffreund.Analyser
                 AnalyserNode? nextNode = map.GetNode(list[index + 1].Item1);
                 if (nextNode != null)
                 {
-                    IPathfinder<AnalyserNode, AnalyserPathway> path = IPathfinder.FindPath<AnalyserNode, AnalyserPathway>(currNode, nextNode);
+                    IPathfinder<AnalyserNode, AnalyserPathway> path = nodeGraph.FindPath(currNode, nextNode);
                     distance += path.GetLength();
                 }
             }

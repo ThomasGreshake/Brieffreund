@@ -1,5 +1,7 @@
 ﻿//Copyright Thomas Greshake 2026
 
+using Brieffreund.AStar;
+
 namespace Brieffreund.Streetmap.Functions
 {
     internal class RequiredSegmentSetter : InternalFlagSetter
@@ -126,16 +128,18 @@ namespace Brieffreund.Streetmap.Functions
             List<Intersection> first = sets[index];
             sets.RemoveAt(index);
 
+            NodeGraph<Intersection, SegmentPathway> nodeGraph = new(Map.GetAllIntersections().ToList(), PathWeightFunc);
+
             while (sets.Count > 0)
             {
                 List<Intersection> toConnect = sets[0];
-                IPathfinder<Intersection, SegmentPathway> best = IPathfinder.FindPath<Intersection, SegmentPathway>(first[0], toConnect[0], PathWeightFunc);
+                IPathfinder<Intersection, SegmentPathway> best = nodeGraph.FindPath(first[0], toConnect[0]);
                 float bestLength = GetLength(best);
 
                 for (int i = 1; i < sets.Count; i++)
                 {
                     List<Intersection> other = sets[i];
-                    IPathfinder<Intersection, SegmentPathway> path = IPathfinder.FindPath<Intersection, SegmentPathway>(first[0], other[0], PathWeightFunc);
+                    IPathfinder<Intersection, SegmentPathway> path = nodeGraph.FindPath(first[0], other[0]);
                     float length = GetLength(path);
 
                     if (path.Success && (!best.Success || length < bestLength))
@@ -151,6 +155,9 @@ namespace Brieffreund.Streetmap.Functions
                 {
                     AddFlag(seg, InternalPathFlags.RequiredOnRoute);
                 }
+
+                //The new flags change the path weights
+                nodeGraph.ChangePathcosts(PathWeightFunc);
             }
         }
 
