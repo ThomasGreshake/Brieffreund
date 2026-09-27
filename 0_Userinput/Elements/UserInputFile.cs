@@ -39,7 +39,7 @@ namespace Brieffreund.Input
             {
                 if (e is FileNotFoundException)
                 {
-                    AnsiConsole.MarkupLine("[red]Es wurden keine Bezirks-Daten mit dem Namen " + districtFileName + " gefunden.[/]");
+                    AnsiConsole.MarkupLine("[red]Es wurden keine Bezirks-Daten mit dem Namen " + Markup.Escape(districtFileName) + " gefunden.[/]");
                 }
                 else
                 {

@@ -22,17 +22,18 @@ namespace Brieffreund.AStar
 
         public PathfinderMulti(N start, IEnumerable<N> ends, Func<P, float> pathMult) //Negative mult => exclude path
         {
-            List<N> closedSet = new();
+            HashSet<N> endSet = ends.ToHashSet();
+            HashSet<N> closedSet = new();
             Dictionary<N, P> cameFrom = new();
             Dictionary<N, float> gScore = new() { { start, 0 } };
             IPriorityQueue<N> openSet = new SimplePriorityQueue<N>();
-            float dist = GetDistance(start.Position, ends);
+            float dist = GetDistance(start.Position, endSet);
             openSet.Enqueue(start, dist);
 
             while (openSet.Count > 0)
             {
                 N current = openSet.Dequeue();
-                if (ends.Contains(current))
+                if (endSet.Contains(current))
                 {
                     N last = ConstructPath(cameFrom, current);
                     Debug.Assert(last == start);
@@ -66,7 +67,7 @@ namespace Brieffreund.AStar
 
                     cameFrom[n] = p;
                     gScore[n] = g;
-                    g += GetDistance(n.Position, ends);
+                    g += GetDistance(n.Position, endSet);
 
                     if (openSet.Contains(n))
                     {

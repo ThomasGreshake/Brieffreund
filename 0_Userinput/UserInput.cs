@@ -238,7 +238,7 @@ namespace Brieffreund.Input
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine("[red]Die folgende Postleitzahl konnte nicht gelesen werden: " + part + "[/]");
+                    AnsiConsole.MarkupLine("[red]Die folgende Postleitzahl konnte nicht gelesen werden: " + Markup.Escape(part) + "[/]");
                 }
             }
         }
@@ -272,7 +272,7 @@ namespace Brieffreund.Input
 
             if (numbersArray.Length == 0)
             {
-                AnsiConsole.MarkupLine("[red]Hausnummern der Straße " + streetName + " konnten nicht gelesen werden.[/]");
+                AnsiConsole.MarkupLine("[red]Hausnummern der Straße " + Markup.Escape(streetName) + " konnten nicht gelesen werden.[/]");
                 return;
             }
 
@@ -294,7 +294,7 @@ namespace Brieffreund.Input
             {
                 if (!Char.IsDigit(num[0]) || !Street.FullnumberToNumberId(num, out int numberId))
                 {
-                    AnsiConsole.MarkupLine("[red]Die Hausnummer " + num + " der Straße " + streetName + " konnten nicht gelesen werden.[/]");
+                    AnsiConsole.MarkupLine("[red]Die Hausnummer " + Markup.Escape(num) + " der Straße " + Markup.Escape(streetName) + " konnten nicht gelesen werden.[/]");
                     continue;
                 }
 
@@ -310,7 +310,7 @@ namespace Brieffreund.Input
             if (string.IsNullOrWhiteSpace(address) || !int.TryParse(string.Concat(countString.TakeWhile(Char.IsDigit)), out int count) ||
                  !Street.SplitStreetAddress(address, out string streetName, out string number))
             {
-                AnsiConsole.MarkupLine("[red]Die Zeile" + line + " mit Ablagen konnte nicht gelesen werden.[/]");
+                AnsiConsole.MarkupLine("[red]Die Zeile " + Markup.Escape(line) + " mit Ablagen konnte nicht gelesen werden.[/]");
                 return;
             }
 
@@ -335,7 +335,7 @@ namespace Brieffreund.Input
         {
             if (!Street.SplitStreetAddress(line, out string streetName, out string fullNumber))
             {
-                AnsiConsole.MarkupLine("[red]Die " + (isStart ? "Startadresse" : "Endadresse") + " konnte nicht gelesen werden (" + line + ").[/]");
+                AnsiConsole.MarkupLine("[red]Die " + (isStart ? "Startadresse" : "Endadresse") + " konnte nicht gelesen werden (" + Markup.Escape(line) + ").[/]");
                 return;
             }
 
@@ -354,13 +354,13 @@ namespace Brieffreund.Input
 
             if (!int.TryParse(value, out int v))
             {
-                AnsiConsole.MarkupLine("[DarkOrange]Die Verkehrsstärke " + line + " konnte nicht gelesen werden.[/]");
+                AnsiConsole.MarkupLine("[DarkOrange]Die Verkehrsstärke " + Markup.Escape(line) + " konnte nicht gelesen werden.[/]");
                 return;
             }
 
             if (v < 0 || v > 4)
             {
-                AnsiConsole.MarkupLine("[DarkOrange]Die Verkehrsstärke " + line + " liegt nicht zwischen 0 (sehr leicht) und 4 (sehr schwer).[/]");
+                AnsiConsole.MarkupLine("[DarkOrange]Die Verkehrsstärke " + Markup.Escape(line) + " liegt nicht zwischen 0 (sehr leicht) und 4 (sehr schwer).[/]");
                 v = Math.Clamp(v, 0, 4);
             }
 
@@ -370,7 +370,7 @@ namespace Brieffreund.Input
             if (!_trafficTypes.TryAdd(s, type))
             {
                 AnsiConsole.MarkupLine("[DarkOrange]Die Verkehsstärke der Straße "
-                    + street + " wurde mehrmals angegeben. Alle Werte abseits des ersten werden ignoriert.[/]");
+                    + Markup.Escape(street) + " wurde mehrmals angegeben. Alle Werte abseits des ersten werden ignoriert.[/]");
             }
         }
 
@@ -409,21 +409,21 @@ namespace Brieffreund.Input
             string[] parts = line.Split(":", StringSplitOptions.None);
             if (parts.Length != 2)
             {
-                AnsiConsole.MarkupLine("[red]Die Verbindungs-Löschung " + line + " konnte nicht gelesen werden.[/]");
+                AnsiConsole.MarkupLine("[red]Die Verbindungs-Löschung " + Markup.Escape(line) + " konnte nicht gelesen werden.[/]");
                 return;
             }
 
             string first = parts[0];
             if (!Street.SplitStreetAddress(first, out string firstName, out string firstNumber))
             {
-                AnsiConsole.MarkupLine("[red]Die erste Adresse der Verbindungs-Löschung " + line + " konnte nicht gelesen werden.[/]");
+                AnsiConsole.MarkupLine("[red]Die erste Adresse der Verbindungs-Löschung " + Markup.Escape(line) + " konnte nicht gelesen werden.[/]");
                 return;
             }
 
             string second = parts[1];
             if (!Street.SplitStreetAddress(second, out string secondName, out string secondNumber))
             {
-                AnsiConsole.MarkupLine("[red]Die zweite Adresse der Verbindungs-Löschung " + line + " konnte nicht gelesen werden[/]");
+                AnsiConsole.MarkupLine("[red]Die zweite Adresse der Verbindungs-Löschung " + Markup.Escape(line) + " konnte nicht gelesen werden[/]");
                 return;
             }
 
@@ -445,7 +445,7 @@ namespace Brieffreund.Input
             else
             {
                 AnsiConsole.MarkupLine("[DarkOrange]Der Analysewunsch konnte nicht gelesen werden.[/]");
-                _compareAnalysis = true;
+                _compareAnalysis = false;
             }
         }
 
@@ -464,7 +464,7 @@ namespace Brieffreund.Input
                 if (kvp.Value.Count == 0)
                 {
                     _mailAddresses.Remove(kvp.Key);
-                    AnsiConsole.MarkupLine("[DarkOrange]Die Straße " + kvp.Key.Name +
+                    AnsiConsole.MarkupLine("[DarkOrange]Die Straße " + Markup.Escape(kvp.Key.Name) +
                         " wurde als Postadresse angegeben, es wurden aber keine gültigen Hausnummern angegeben.[/]");
                 }
             }

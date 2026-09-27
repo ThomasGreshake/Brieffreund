@@ -111,7 +111,7 @@ namespace Brieffreund
             if (success)
             {
                 AnsiConsole.MarkupLine("[green]Eine Kopie der fertigen Route ist in der Text-Datei unter \""
-                    + path + "\" zu finden.[/]");
+                    + Markup.Escape(path) + "\" zu finden.[/]");
             }
             else
             {
@@ -231,7 +231,7 @@ namespace Brieffreund
             bool green = diff < 0 == lesserIsBetter;
             string line = (green ? "[green]" : "[red]") + (diff < 0 ? "-" : "+") + Math.Abs(diff).ToString() + "[/]";
 
-            if (displayPerc)
+            if (displayPerc && a != 0)
             {
                 int perc = (int)Math.Round(100 * (float)diff / a);
                 line += " (" + (green ? "[green]" : "[red]") + (diff < 0 ? "-" : "+") + Math.Abs(perc).ToString() + "%[/])";

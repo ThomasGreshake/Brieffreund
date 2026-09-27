@@ -2,6 +2,7 @@
 
 using Brieffreund.Streetmap.Functions;
 using Brieffreund.Input;
+using System.Globalization;
 using System.Numerics;
 using Spectre.Console;
 
@@ -364,8 +365,8 @@ namespace Brieffreund.Streetmap.Osm
                 return false;
             }
 
-            width.Replace(".", ",");
-            string value = string.Concat(width.TakeWhile(x => Char.IsDigit(x) || x == ','));
+            width = width.Trim().Replace(",", ".");
+            string value = string.Concat(width.TakeWhile(x => Char.IsDigit(x) || x == '.'));
             string unit = width.Substring(value.Length).Trim();
 
             if (!string.IsNullOrEmpty(unit) && unit != "m")
@@ -374,7 +375,7 @@ namespace Brieffreund.Streetmap.Osm
                 return false;
             }
 
-            return float.TryParse(value, out val);
+            return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out val);
         }
 
         private static float EstimateWidth(StreetType type)

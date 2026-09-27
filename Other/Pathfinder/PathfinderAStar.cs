@@ -22,7 +22,7 @@ namespace Brieffreund.AStar
 
         public PathfinderAStar(N start, N end, Func<P, float> pathMult) //Negative mult => exclude path
         {
-            List<N> closedSet = new();
+            HashSet<N> closedSet = new();
             Dictionary<N, P> cameFrom = new();
             Dictionary<N, float> gScore = new() { { start, 0 } };
             IPriorityQueue<N> openSet = new SimplePriorityQueue<N>();

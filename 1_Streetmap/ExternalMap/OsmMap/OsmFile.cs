@@ -3,6 +3,7 @@
 using Spectre.Console;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Numerics;
 using System.Xml;
 
@@ -216,7 +217,8 @@ namespace Brieffreund.Streetmap.Osm
                     continue;
                 }
 
-                if (float.TryParse(lonString.Replace(".", ","), out float lon) && float.TryParse(latString.Replace(".", ","), out float lat))
+                if (float.TryParse(lonString, NumberStyles.Float, CultureInfo.InvariantCulture, out float lon)
+                    && float.TryParse(latString, NumberStyles.Float, CultureInfo.InvariantCulture, out float lat))
                 {
                     positions.Add(new Vector2(lon, lat));
                 }
@@ -377,9 +379,10 @@ namespace Brieffreund.Streetmap.Osm
                     return false;
                 }
 
-                if (float.TryParse(lonString.Replace(".", ","), out float lon) && float.TryParse(latString.Replace(".", ","), out float lat))
+                if (float.TryParse(lonString, NumberStyles.Float, CultureInfo.InvariantCulture, out float lon)
+                    && float.TryParse(latString, NumberStyles.Float, CultureInfo.InvariantCulture, out float lat))
                 {
-                    position = new(lon, lat);
+                    position =new(lon, lat);
                     ReadNodeFlags(reader.ReadSubtree(), flags);
                     return true;
                 }

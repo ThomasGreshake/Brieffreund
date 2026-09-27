@@ -225,7 +225,7 @@ namespace Brieffreund.AStar
         private PathNodeData ConstructPath(PathNodeData end)
         {
             PathNodeData current = end;
-            while (current.CameFromWayIndex > 0)
+            while (current.CameFromWayIndex >= 0)
             {
                 PathwayData wayData = _wayData[current.CameFromWayIndex];
                 P pathway = _pathways[wayData.Index];
