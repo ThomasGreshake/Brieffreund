@@ -85,7 +85,7 @@ namespace Brieffreund.Streetmap.Functions
 
                         if (!path.Success)
                         {
-                            throw new Exception();
+                            throw new InvalidOperationException($"No path found between edge intersections at {edgeNodes[i].Position} and {edgeNodes[j].Position}.");
                         }
 
                         float dist = path.GetLength();

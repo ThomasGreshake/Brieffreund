@@ -385,7 +385,7 @@ namespace Brieffreund.Routemap
                 }
                 else
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Unexpected item of type {o?.GetType().Name ?? "null"} in sub-loop.");
                 }
             }
             return list;

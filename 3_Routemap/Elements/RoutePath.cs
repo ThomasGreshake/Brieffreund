@@ -65,7 +65,7 @@ namespace Brieffreund
             {
                 return From;
             }
-            throw new Exception();
+            throw new ArgumentException($"Node at {node.Position} is not an end of route path ({From.Position} -> {To.Position}).", nameof(node));
         }
 
         internal RoutePathway GetOpposite(RoutePathway way)
@@ -78,7 +78,7 @@ namespace Brieffreund
             {
                 return Forward;
             }
-            throw new Exception();
+            throw new ArgumentException($"Pathway does not belong to route path ({From.Position} -> {To.Position}).", nameof(way));
         }
     }
 }

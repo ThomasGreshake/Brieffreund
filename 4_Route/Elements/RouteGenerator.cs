@@ -118,7 +118,7 @@ namespace Brieffreund.Routegenerator
                 {
                     if (current.Routenode != map.StartAndEnd[1])
                     {
-                        throw new Exception("Bad route end");
+                        throw new InvalidOperationException($"Bad route end: route ran out of options at {current.Routenode.Position} instead of at the end node {map.StartAndEnd[1].Position}.");
                     }
 
                     SetFinalRoute(current);

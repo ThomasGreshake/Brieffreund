@@ -197,7 +197,7 @@ namespace Brieffreund
             {
                 return Forward;
             }
-            throw new Exception();
+            throw new ArgumentException($"Pathway does not belong to segment {Index}.", nameof(way));
         }
 
         internal Intersection GetOther(Intersection i)
@@ -210,7 +210,7 @@ namespace Brieffreund
             {
                 return From;
             }
-            throw new Exception();
+            throw new ArgumentException($"Intersection at {i.Position} is not an end of segment {Index} ({From.Position} -> {To.Position}).", nameof(i));
         }
 
         internal IEnumerable<MailAddress> GetMailAddresses()
@@ -294,7 +294,7 @@ namespace Brieffreund
 
             if (!isActive && ReceivesMail)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Segment {Index} ({From.Position} -> {To.Position}) receives mail and cannot be deactivated.");
             }
 
             _isActive = isActive;
@@ -349,7 +349,7 @@ namespace Brieffreund
 
                 if (i != segment.Index)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Segment index out of sync: segment at list position {i} has Index {segment.Index}.");
                 }
 
                 segment._singlePathingLength = creator.SinglePathingLengths[i];

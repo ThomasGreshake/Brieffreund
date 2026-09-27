@@ -295,7 +295,7 @@ namespace Brieffreund.Eulermap.Functions
         {
             if (_result == null)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"No side assignment was found for the current group of {_currentGroup.Count} euler paths.");
             }
 
             foreach (EulerPath path in _currentGroup)

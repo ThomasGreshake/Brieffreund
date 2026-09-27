@@ -250,7 +250,7 @@ namespace Brieffreund.Streetmap.Functions
                 StreetSegment? segment = current.Segment;
                 if (segment == null)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Path {current.Index} ({current.Street?.Name}) has no segment.");
                 }
 
                 for (int j = 0; j < list.Count; j++)
@@ -314,7 +314,7 @@ namespace Brieffreund.Streetmap.Functions
                 StreetSegment? segment = minimum.Key.Segment;
                 if (segment == null)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Closest path {minimum.Key.Index} to building {building.Street.Name} {building.Number} has no segment.");
                 }
 
                 if (!segmentData.TryGetValue(segment, out var list))
@@ -387,7 +387,7 @@ namespace Brieffreund.Streetmap.Functions
                 {
                     if (!toCheck.Remove(path))
                     {
-                        throw new Exception(path.IsActive.ToString());
+                        throw new InvalidOperationException($"Path {path.Index} ({path.Street?.Name}, active: {path.IsActive}) is in the connected set but was not in the list of paths to check.");
                     }
                 }
 
@@ -791,7 +791,7 @@ namespace Brieffreund.Streetmap.Functions
                 StreetSegment? segment = p.Segment;
                 if (segment == null)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Path {p.Index} cast for building {b.Street.Name} {b.Number} has no segment.");
                 }
 
                 if (!segmentStreetVotes.TryGetValue(segment, out Dictionary<Street, int>? votes))
@@ -817,7 +817,7 @@ namespace Brieffreund.Streetmap.Functions
 
                 if (votes.Count == 0)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Segment {segment.Index} ({segment.From.Position} -> {segment.To.Position}) has no street votes.");
                 }
 
                 KeyValuePair<Street, int> best = votes.MaxBy(v => v.Value);
@@ -1106,7 +1106,7 @@ namespace Brieffreund.Streetmap.Functions
                     StreetSegment? segment = path.Segment;
                     if (segment == null)
                     {
-                        throw new Exception();
+                        throw new InvalidOperationException($"Candidate path {path.Index} for building {building.Street.Name} {building.Number} has no segment.");
                     }
 
                     float minAnglePerc = (float)Math.PI;
@@ -1200,7 +1200,7 @@ namespace Brieffreund.Streetmap.Functions
                     StreetSegment? seg = path.Segment;
                     if (seg == null)
                     {
-                        throw new Exception();
+                        throw new InvalidOperationException($"Candidate path {path.Index} for building {building.Street.Name} {building.Number} has no segment.");
                     }
 
                     if (!castResult.TryGetValue(seg, out List<Building>? list))
@@ -1233,7 +1233,7 @@ namespace Brieffreund.Streetmap.Functions
                 StreetSegment? segment = kvp.Value.Segment;
                 if (segment == null)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Path {kvp.Value.Index} cast for building {building.Street.Name} {building.Number} has no segment.");
                 }
 
                 if (!castResult.TryGetValue(segment, out List<Building>? list))
@@ -1270,7 +1270,7 @@ namespace Brieffreund.Streetmap.Functions
                     Building? toAdd = close.Where(c => !testNeighbours.Contains(c)).MinBy(c => Math.Abs(c.NumberId - building.NumberId));
                     if (toAdd == null)
                     {
-                        throw new Exception();
+                        throw new InvalidOperationException($"Ran out of close neighbours for building {building.Street.Name} {building.Number} after {i} of {count}.");
                     }
 
                     testNeighbours.Add(toAdd);
@@ -1292,7 +1292,8 @@ namespace Brieffreund.Streetmap.Functions
 
                     if (!path.Success)
                     {
-                        throw new Exception();
+                        throw new InvalidOperationException($"No path found between building {building.Street.Name} {building.Number} ({buildingNode.Position}) "
+                            + $"and neighbour {n.Street.Name} {n.Number} ({neighbourNode.Position}).");
                     }
 
                     if (path.GetLength() > Vector2.Distance(building.Position, n.Position) * 2 + 100)
@@ -1313,7 +1314,7 @@ namespace Brieffreund.Streetmap.Functions
                 Building? current = conflicts.MaxBy(b => conflicts.Count(c => c == b));
                 if (current == null)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Conflict list contains a null building ({conflicts.Count} conflicts remaining).");
                 }
 
                 while (true)
@@ -1356,7 +1357,8 @@ namespace Brieffreund.Streetmap.Functions
 
                         if (!path.Success)
                         {
-                            throw new Exception();
+                            throw new InvalidOperationException($"No path found between building {current.Street.Name} {current.Number} ({buildingNode.Position}) "
+                                + $"and neighbour {n.Street.Name} {n.Number} ({neighbourNode.Position}).");
                         }
 
                         if (path.GetLength() < Vector2.Distance(current.Position, n.Position) * 2 + 100)

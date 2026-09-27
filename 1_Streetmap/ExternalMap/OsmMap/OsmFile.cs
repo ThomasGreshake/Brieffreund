@@ -43,7 +43,7 @@ namespace Brieffreund.Streetmap.Osm
             {
                 return node;
             }
-            throw new Exception();
+            throw new KeyNotFoundException($"OSM node with id {id} was not found in the OSM file.");
         }
 
         internal bool TryGetNode(long id, [MaybeNullWhen(false)] out OsmNode? node) => _nodes.TryGetValue(id, out node);

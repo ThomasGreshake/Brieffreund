@@ -32,7 +32,7 @@ namespace Brieffreund
             RouteLeaf? finalLeaf = manager.FinalLeaf;
             if (finalLeaf == null)
             {
-                throw new Exception();
+                throw new InvalidOperationException("Route search finished without a final route.");
             }
 
             RouteReader routeReader = new RouteReader(input, finalLeaf);

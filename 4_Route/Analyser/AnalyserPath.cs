@@ -53,7 +53,7 @@ namespace Brieffreund.Analyser
             {
                 return From;
             }
-            throw new Exception();
+            throw new ArgumentException($"Node at {node.Position} is not an end of analyser path ({From.Position} -> {To.Position}).", nameof(node));
         }
     }
 }

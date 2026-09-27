@@ -59,7 +59,7 @@ namespace Brieffreund.Routemap.Functions
             IPathfinder<StreetNode, StreetPathway> path = IPathfinder.FindPath<StreetNode, StreetPathway>(node, storage.ClosestNode);
             if (!path.Success)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"No path found from route node at {node.Position} to storage at {storage.ClosestNode.Position}.");
             }
 
             StreetPathway pointerWay = rn.Pointer.GetIncomingWay();

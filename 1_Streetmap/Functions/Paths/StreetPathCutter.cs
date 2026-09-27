@@ -99,7 +99,8 @@ namespace Brieffreund.Streetmap.Functions
                 IPathfinder<StreetNode, StreetPathway> path = IPathfinder.FindPath<StreetNode, StreetPathway>(first.Item2, second.Item2, w => w.Path.IsActive ? 1f : -1f);
                 if (!path.Success)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"No path found between cut addresses {cut.Item1.Name} {cut.Item2} ({first.Item2.Position}) "
+                        + $"and {cut.Item3.Name} {cut.Item4} ({second.Item2.Position}).");
                 }
 
                 float length = path.GetLength();

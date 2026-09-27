@@ -118,7 +118,7 @@ namespace Brieffreund
             {
                 return Forward;
             }
-            throw new Exception();
+            throw new ArgumentException($"Pathway does not belong to euler path {Index}.", nameof(way));
         }
 
         internal EulerNode GetOther(EulerNode node)
@@ -131,7 +131,7 @@ namespace Brieffreund
             {
                 return From;
             }
-            throw new Exception();
+            throw new ArgumentException($"Node at {node.Intersection.Position} is not an end of euler path {Index}.", nameof(node));
         }
 
         //Listeners -----------------------------------------------------------------------

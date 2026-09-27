@@ -721,7 +721,7 @@ namespace Brieffreund.Streetmap.Osm
 
             if (node.IsActive)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Node at {node.Position} must be inactive when created.");
             }
 
             map._inactiveNodes.Add(node);
@@ -734,12 +734,12 @@ namespace Brieffreund.Streetmap.Osm
 
             if (node.IsActive)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Node at {node.Position} cannot be deleted while it is active.");
             }
 
             if (!map._inactiveNodes.Remove(node))
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Deleted node at {node.Position} was not found in the inactive node list.");
             }
         }
 
@@ -752,7 +752,7 @@ namespace Brieffreund.Streetmap.Osm
             {
                 if (!map._inactiveNodes.Remove(node))
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Activated node at {node.Position} was not found in the inactive node list.");
                 }
 
                 map._nodes.Add(node);
@@ -761,7 +761,7 @@ namespace Brieffreund.Streetmap.Osm
             {
                 if (!map._nodes.Remove(node))
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Deactivated node at {node.Position} was not found in the active node list.");
                 }
 
                 map._inactiveNodes.Add(node);
@@ -775,7 +775,7 @@ namespace Brieffreund.Streetmap.Osm
 
             if (path.IsActive)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Path {path.Index} ({path.Street?.Name}) must be inactive when created.");
             }
 
             map._inactivePaths.Add(path);
@@ -788,12 +788,12 @@ namespace Brieffreund.Streetmap.Osm
 
             if (path.IsActive)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Path {path.Index} ({path.Street?.Name}) cannot be deleted while it is active.");
             }
 
             if (!map._inactivePaths.Remove(path))
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Deleted path ({path.Street?.Name}, {path.From.Position} -> {path.To.Position}) was not found in the inactive path list.");
             }
         }
 
@@ -806,7 +806,7 @@ namespace Brieffreund.Streetmap.Osm
             {
                 if (!map._inactivePaths.Remove(path))
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Activated path ({path.Street?.Name}, {path.From.Position} -> {path.To.Position}) was not found in the inactive path list.");
                 }
 
                 map._paths.Add(path);
@@ -815,7 +815,7 @@ namespace Brieffreund.Streetmap.Osm
             {
                 if (map._paths[path.Index] != path)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Path index out of sync: path at index {path.Index} is not the path being deactivated.");
                 }
 
                 map._paths.RemoveAt(path.Index);

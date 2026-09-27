@@ -82,9 +82,10 @@ namespace Brieffreund.Streetmap.Functions
                 toRemove.Add(segment);
             }
 
-            if (toRemove.Any(s => s.ReceivesMail))
+            StreetSegment? withMail = toRemove.FirstOrDefault(s => s.ReceivesMail);
+            if (withMail != null)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Sidewalk segment {withMail.Index} ({withMail.From.Position} -> {withMail.To.Position}) was marked for removal but receives mail.");
             }
 
             int count = toRemove.Count;
@@ -119,7 +120,7 @@ namespace Brieffreund.Streetmap.Functions
 
             if (index < 0)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Intersection at {inter.Position}: incoming pathway of segment {way.Segment.Index} is not registered at the street node.");
             }
 
             return inter.Pathways[(index + 1) % inter.Count];

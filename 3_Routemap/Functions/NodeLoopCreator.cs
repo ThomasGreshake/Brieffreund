@@ -203,7 +203,7 @@ namespace Brieffreund.Routemap.Functions
                     bestNode = candidates.MinBy(GetLength);
                     if (bestNode == null)
                     {
-                        throw new Exception();
+                        throw new InvalidOperationException($"No best node could be chosen from {candidates.Count} candidates.");
                     }
                 }
 
@@ -226,7 +226,7 @@ namespace Brieffreund.Routemap.Functions
             List<int> colors = _colorCounter.ToList();
             if (colors.Count != 2)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Single loop at node {node.Position} must touch exactly 2 loop colors, but touches {colors.Count}.");
             }
 
             float bestPassing = float.MaxValue;
@@ -264,7 +264,7 @@ namespace Brieffreund.Routemap.Functions
 
             if (bestNode == null)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"No pair of pathways found to connect the two loops at node {node.Position}.");
             }
 
             AddSingleLoop(bestNode.Item1.Towards, bestNode.Item1, bestNode.Item2);

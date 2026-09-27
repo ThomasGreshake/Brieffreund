@@ -184,7 +184,8 @@ namespace Brieffreund
         {
             if (_segment != null || _mailAddresses.Count != 0 || _storageAddresses.Count != 0)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Path {Index} ({_street?.Name}) cannot be deleted: it still has a segment ({_segment != null}), "
+                    + $"{_mailAddresses.Count} mail addresses or {_storageAddresses.Count} storages.");
             }
 
             SetIsActive(false);
@@ -204,7 +205,7 @@ namespace Brieffreund
             {
                 return From;
             }
-            throw new Exception();
+            throw new ArgumentException($"Node at {node.Position} is not an end of path {Index} ({From.Position} -> {To.Position}).", nameof(node));
         }
 
         internal Vector2 Lerp(float perc) =>
@@ -287,14 +288,14 @@ namespace Brieffreund
             {
                 return _forward;
             }
-            throw new Exception();
+            throw new ArgumentException($"Pathway does not belong to path {Index}.", nameof(way));
         }
 
         internal void Cut(bool atStart)
         {
             if (_segment != null)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Path {Index} ({_street?.Name}) cannot be cut because it is already part of segment {_segment.Index}.");
             }
 
             StreetNode oldNode = atStart ? From : To;

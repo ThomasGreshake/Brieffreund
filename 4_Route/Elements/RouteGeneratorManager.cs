@@ -82,7 +82,7 @@ namespace Brieffreund.Routegenerator
                 RouteLeaf? final = current.FinalRoute;
                 if (final == null)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException("Route generator reported completion but has no final route.");
                 }
 
                 SetFinalRoute(final);

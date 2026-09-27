@@ -268,7 +268,7 @@ namespace Brieffreund
 
             if (inter.IsActive)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Intersection at {inter.Position} must be inactive when created.");
             }
 
             map._inactiveIntersections.Add(inter.Streetnode, inter);
@@ -285,7 +285,7 @@ namespace Brieffreund
 
             if (inter.IsActive ? !map._intersections.Remove(inter.Streetnode) : !map._inactiveIntersections.Remove(inter.Streetnode))
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Removed intersection at {inter.Position} was not found in the {(inter.IsActive ? "active" : "inactive")} intersection list.");
             }
         }
 
@@ -301,7 +301,7 @@ namespace Brieffreund
             {
                 if (!map._inactiveIntersections.Remove(inter.Streetnode))
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Activated intersection at {inter.Position} was not found in the inactive intersection list.");
                 }
 
                 map._intersections.Add(inter.Streetnode, inter);
@@ -310,7 +310,7 @@ namespace Brieffreund
             {
                 if (!map._intersections.Remove(inter.Streetnode))
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Deactivated intersection at {inter.Position} was not found in the active intersection list.");
                 }
 
                 map._inactiveIntersections.Add(inter.Streetnode, inter);
@@ -327,7 +327,7 @@ namespace Brieffreund
 
             if (segment.IsActive)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Segment {segment.Index} must be inactive when created.");
             }
 
             map._inactiveSegments.Add(segment);
@@ -351,14 +351,14 @@ namespace Brieffreund
             {
                 if (map._segments[segment.Index] != segment)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Segment index out of sync: segment at index {segment.Index} is not the segment being removed.");
                 }
 
                 map._segments.RemoveAt(segment.Index);
             }
             else if (!map._inactiveSegments.Remove(segment))
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Removed segment ({segment.From.Position} -> {segment.To.Position}) was not found in the inactive segment list.");
             }
         }
 
@@ -374,7 +374,7 @@ namespace Brieffreund
             {
                 if (!map._inactiveSegments.Remove(segment))
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Activated segment ({segment.From.Position} -> {segment.To.Position}) was not found in the inactive segment list.");
                 }
 
                 map._segments.Add(segment);
@@ -383,7 +383,7 @@ namespace Brieffreund
             {
                 if (map._segments[segment.Index] != segment)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Segment index out of sync: segment at index {segment.Index} is not the segment being deactivated.");
                 }
 
                 map._segments.RemoveAt(segment.Index);

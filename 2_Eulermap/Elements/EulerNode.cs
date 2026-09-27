@@ -115,7 +115,7 @@ namespace Brieffreund
             float score = Intersection.Streetnode.Pathways.IndexOf(way.GetOutgoingWay());
             if (score < 0)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Euler node at {Intersection.Position}: outgoing pathway is not registered at the street node.");
             }
 
             bool? leftOfWay = way.LeftOfWay(true);

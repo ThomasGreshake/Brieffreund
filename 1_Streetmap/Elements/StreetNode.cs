@@ -100,7 +100,7 @@ namespace Brieffreund
         {
             if (from.Towards != this || to.Origin != this)
             {
-                throw new Exception();
+                throw new ArgumentException($"Node at {Position}: 'from' must lead into this node and 'to' must lead out of it.");
             }
 
             int fromIndex = _pathWays.IndexOf(from.GetOpposite());
@@ -108,7 +108,7 @@ namespace Brieffreund
 
             if (fromIndex < 0 || toIndex < 0)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Node at {Position}: pathway not found in node's pathway list (fromIndex {fromIndex}, toIndex {toIndex}).");
             }
 
             float counterClockwiseDistance = 0f;
@@ -164,7 +164,7 @@ namespace Brieffreund
 
             if (_pathWays.Contains(outgoing))
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Node at {Position}: path {path.Index} was already added to this node.");
             }
 
             float angle = GetAngle(outgoing);
@@ -191,7 +191,7 @@ namespace Brieffreund
 
             if (!path.From._pathWays.Remove(path.Forward) || !path.To._pathWays.Remove(path.Backward))
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Deleted path {path.Index} ({path.From.Position} -> {path.To.Position}) was not registered at both of its nodes.");
             }
 
             if (path.From.Count == 0)
@@ -209,7 +209,7 @@ namespace Brieffreund
         {
             if (_isActive)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Node at {Position} cannot be deleted while it is active.");
             }
 
             IOnNodeDeleted.Call(this);
@@ -254,7 +254,7 @@ namespace Brieffreund
 
             if (!e.GetOldNode()._pathWays.Remove(otherWay) || !otherWay.Towards._pathWays.Remove(oldWay))
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Cutting path {path.Index} at node {e.GetOldNode().Position}: old pathways were not registered at their nodes.");
             }
 
             OnStreetPathCreated(path);

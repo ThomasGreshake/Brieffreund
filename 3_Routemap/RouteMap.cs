@@ -77,7 +77,8 @@ namespace Brieffreund
 
             if (_startAndEnd[0].Eulernode != eulerMap.StartAndEndNode[0] || _startAndEnd[1].Eulernode != eulerMap.StartAndEndNode[1])
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Route map start/end ({_startAndEnd[0].Position}, {_startAndEnd[1].Position}) do not match "
+                    + $"the euler map start/end ({eulerMap.StartAndEndNode[0].Position}, {eulerMap.StartAndEndNode[1].Position}).");
             }
 
             distributor.DistributeStorages();
@@ -95,7 +96,8 @@ namespace Brieffreund
             {
                 if (eulerMap.StartAndEndNode[0] != eulerMap.StartAndEndNode[1])
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"All path loops are closed, but the start ({eulerMap.StartAndEndNode[0].Position}) "
+                        + $"and end ({eulerMap.StartAndEndNode[1].Position}) are different nodes.");
                 }
                 initialLoop = pathLoops[0];
             }

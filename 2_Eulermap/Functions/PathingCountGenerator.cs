@@ -138,7 +138,7 @@ namespace Brieffreund.Eulermap.Functions
 
             if (!IsEven(current))
             {
-                throw new Exception();
+                throw new InvalidOperationException("Fully determined pathing counts do not produce an even graph.");
             }
 
             AddToCompleted(Tuple.Create(current, GetLength(current)));

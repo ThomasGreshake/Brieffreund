@@ -137,7 +137,7 @@ namespace Brieffreund
             int score = Streetnode.Pathways.IndexOf(pathway);
             if (score < 0)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Intersection at {Position}: outgoing pathway of segment {way.Segment.Index} is not registered at the street node.");
             }
             return score;
         }
@@ -162,7 +162,7 @@ namespace Brieffreund
             StreetSegment s = e.GetSegment();
             if (!s.From._pathways.Remove(s.Forward) || !s.To._pathways.Remove(s.Backward))
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Removed segment {s.Index} ({s.From.Position} -> {s.To.Position}) was not registered at both of its intersections.");
             }
         }
 

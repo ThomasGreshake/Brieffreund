@@ -107,7 +107,7 @@ namespace Brieffreund.Streetmap.Functions
         {
             if ((uneven.Count + existingCount) % 2 == 1)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"Odd total of uneven intersections ({uneven.Count}) and existing start/end points ({existingCount}); the graph cannot be valid.");
             }
 
             while (uneven.Count > 2)
@@ -144,7 +144,7 @@ namespace Brieffreund.Streetmap.Functions
             {
                 if (existingCount != 1)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"One uneven intersection left (at {uneven[0].Position}), but {existingCount} existing start/end points instead of 1.");
                 }
 
                 _startAndEndIntersections[_map.StartAndEndIntersections[0] == null ? 0 : 1] = uneven[0];
@@ -153,7 +153,7 @@ namespace Brieffreund.Streetmap.Functions
 
             if (existingCount != 0)
             {
-                throw new Exception();
+                throw new InvalidOperationException($"{uneven.Count} uneven intersections left, but {existingCount} existing start/end points instead of 0.");
             }
 
             _startAndEndIntersections[0] = uneven[0];

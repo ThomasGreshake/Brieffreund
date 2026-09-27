@@ -39,7 +39,7 @@ namespace Brieffreund
                 StreetSegment? segment = Path.Segment;
                 if (segment == null)
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException($"Address {Street.Name} {Number}: its path {Path.Index} has no segment.");
                 }
                 return segment;
             }

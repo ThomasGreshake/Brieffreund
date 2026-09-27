@@ -121,7 +121,8 @@ namespace Brieffreund.AStar
 
                     if (last.Index != startIndex)
                     {
-                        throw new Exception(); // <--------------------------------------------------------- Sometimes throws
+                        throw new InvalidOperationException($"Reconstructed path from {start.Position} to {end.Position} does not lead back to the start "
+                            + $"(ended at node index {last.Index} at {last.Position}, expected {startIndex})."); // <--------------------------------------------------------- Sometimes throws
                     }
 
                     return this;
