@@ -202,7 +202,7 @@ namespace Brieffreund.Routegenerator.Functions
                     StorageData next = _data[i + 1];
                     int overNextMailAmount = i == _data.Count - 2 ? _mailAmount : _data[i + 2].MailAmount;
 
-                    if (next.Storage != current.Storage)
+                    if (next.StorageIndex != current.StorageIndex)
                     {
                         continue;
                     }

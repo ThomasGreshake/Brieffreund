@@ -158,6 +158,8 @@ namespace Brieffreund.Routegenerator.Functions
                     float numberDiff = (float)Math.Abs(compare.NumberId - m.NumberId) / Constants.ADDRESS_ADDON_RANGE;
                     score += 10f * (isDuplicate[i] ? 0.5f : 1f) * (m.IsEven == compare.IsEven ? 1f : 0.25f) / (5f + (float)Math.Pow(dist * numberDiff, 0.25f));
                 }
+
+                distTravelled += current.Length;
             }
 
             return score;

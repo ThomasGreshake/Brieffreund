@@ -117,7 +117,7 @@ namespace Brieffreund.Routegenerator.Functions
                         return;
                     }
 
-                    if (i == list.Count - 1 || list[i + 1].GetDistanceOnSegment() != dist)
+                    if (i == list.Count - 1 || (float)Math.Round(list[i + 1].GetDistanceOnSegment(), 2) != dist)
                     {
                         list.Insert(i + 1, address);
                         return;
