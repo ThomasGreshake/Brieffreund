@@ -1,13 +1,10 @@
 ﻿//Copyright Thomas Greshake 2026
 
-//CURRENTLY BUGGED + not even that much faster
-
 using Priority_Queue;
 using System.Numerics;
 
 namespace Brieffreund.AStar
 {
-    [Obsolete] //obsolete until bug is found
     internal class NodeGraph<N, P> : IPathfinder<N, P> where N : class, IPathnode<N, P> where P : class, IPathway<N, P>
     {
         private bool _success = true, _cleared = true;
@@ -122,7 +119,7 @@ namespace Brieffreund.AStar
                     if (last.Index != startIndex)
                     {
                         throw new InvalidOperationException($"Reconstructed path from {start.Position} to {end.Position} does not lead back to the start "
-                            + $"(ended at node index {last.Index} at {last.Position}, expected {startIndex})."); // <--------------------------------------------------------- Sometimes throws
+                            + $"(ended at node index {last.Index} at {last.Position}, expected {startIndex}).");
                     }
 
                     return this;

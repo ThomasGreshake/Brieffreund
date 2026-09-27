@@ -28,6 +28,10 @@ namespace Brieffreund
         public static float FullAngle(Vector2 a, Vector2 b)
         {
             float angle = Angle(a, b);
+            if (angle == 0)
+            {
+                return 0;
+            }
             return PointsToTheLeft(a, b) ? angle : 2 * (float)Math.PI - angle;
         }
 

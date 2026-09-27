@@ -198,7 +198,7 @@ namespace Brieffreund.Input
 
                 if (depth <= 0)
                 {
-                    AnsiConsole.MarkupLine("[red]Die Suchtiefe muss größer als 1 sein.[/]");
+                    AnsiConsole.MarkupLine("[red]Die Suchtiefe muss größer als 0 sein.[/]");
                     continue;
                 }
 
@@ -232,9 +232,12 @@ namespace Brieffreund.Input
             string[] parts = line.Split(SEPERATORS, StringSplitOptions.RemoveEmptyEntries);
             foreach (var part in parts)
             {
-                if (int.TryParse(part, out var plz) && !_postCodes.Contains(plz))
+                if (int.TryParse(part, out var plz))
                 {
-                    _postCodes.Add(plz);
+                    if (!_postCodes.Contains(plz))
+                    {
+                        _postCodes.Add(plz);
+                    }
                 }
                 else
                 {
