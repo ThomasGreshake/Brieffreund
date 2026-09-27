@@ -709,8 +709,10 @@ namespace Brieffreund.Routemap.Functions
 
         private float GetLength(List<EulerPathway> ways)
         {
-            float length = 0;
-            for (int i = 1; i < length; i++)
+            if (ways.Count == 0) { return 0; }
+
+            float length = ways[0].Length;
+            for (int i = 1; i < ways.Count; i++)
             {
                 EulerPathway current = ways[i];
                 EulerPathway prev = ways[i - 1];
