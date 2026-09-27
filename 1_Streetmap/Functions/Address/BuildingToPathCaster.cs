@@ -2,6 +2,7 @@
 
 using Priority_Queue;
 using System.Numerics;
+using Brieffreund.AStar;
 
 namespace Brieffreund.Streetmap
 {
@@ -1252,6 +1253,10 @@ namespace Brieffreund.Streetmap.Functions
         {
             List<Building> conflicts = new();
 
+            IList<StreetNode> streetNodes = _map.Nodes;
+            NodeGraph<StreetNode, StreetPathway> nodeGraph
+                = new NodeGraph<StreetNode, StreetPathway>(streetNodes, w => (w.Path.IsActive ? 1 : -1) * (w.Path.RestrictedAccess ? 1048576 : 1));
+
             foreach (Building building in _casts.Keys)
             {
                 List<Building> close =
@@ -1287,8 +1292,12 @@ namespace Brieffreund.Streetmap.Functions
 
                     StreetNode neighbourNode = neighbourPath.GetClosestNode(n.Position);
 
+                    IPathfinder<StreetNode, StreetPathway> path = nodeGraph.FindPath(buildingNode, neighbourNode);
+
+                    /*
                     IPathfinder<StreetNode, StreetPathway> path = IPathfinder.FindPath<StreetNode, StreetPathway>(buildingNode, neighbourNode,
                         w => (w.Path.IsActive ? 1 : -1) * (w.Path.RestrictedAccess ? 1048576 : 1));
+                    */
 
                     if (!path.Success)
                     {
