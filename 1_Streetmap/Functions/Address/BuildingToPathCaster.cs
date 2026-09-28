@@ -599,10 +599,11 @@ namespace Brieffreund.Streetmap.Functions
                         foreach (Building n in oppositeNeighbours)
                         {
                             Vector2 oppositeDiff = n.Position - building.Position;
+                            //Angle to the path's direction folded into [0, PI/2], so the neighbour most directly across the path scores highest
                             float score = MyMath.Angle(pathDir, oppositeDiff);
                             if (score > 0.5f * Math.PI)
                             {
-                                score -= 0.5f * (float)Math.PI;
+                                score = (float)Math.PI - score;
                             }
                             score /= (float)Math.Sqrt(oppositeDiff.Length());
                             if (n.IsEven != building.IsEven)
