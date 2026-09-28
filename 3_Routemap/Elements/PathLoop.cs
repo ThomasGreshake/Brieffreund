@@ -33,10 +33,10 @@ namespace Brieffreund.Routemap
             List<PathLoop> loops = CreateLoops(map, connections, pathToLoop, nodeToLoops);
 
             //Inverts the connections on nodes that connect loops on dead ends with the rest of the district, eliminating these loops in the process by connecting dead ends to the rest
-            ConnectDeadendsByInvertingNodeConnections(map, connectionCreator, loops, connections, pathToLoop, nodeToLoops, nodeScores);
+            ConnectDeadendsByInvertingNodeConnections(map, connectionCreator, loops, connections, pathToLoop, nodeToLoops, nodeScores, true);
 
             //Inverts some back to the original state, if the original inversion did not solve the connection issue, then the original state is preferable
-            ConnectDeadendsByInvertingNodeConnections(map, connectionCreator, loops, connections, pathToLoop, nodeToLoops, nodeScores);
+            ConnectDeadendsByInvertingNodeConnections(map, connectionCreator, loops, connections, pathToLoop, nodeToLoops, nodeScores, false);
 
             for (int i = 0; i < loops.Count; i++)
             {
@@ -189,7 +189,7 @@ namespace Brieffreund.Routemap
         }
 
         private static void ConnectDeadendsByInvertingNodeConnections(IEulerMap map, INodeConnectionCreator connectionCreator,
-            List<PathLoop> pathLoops, int[][] connections, PathLoop[] pathToLoop, List<PathLoop>[] nodeToLoops, float[] nodeScores)
+            List<PathLoop> pathLoops, int[][] connections, PathLoop[] pathToLoop, List<PathLoop>[] nodeToLoops, float[] nodeScores, bool useOppositeConnections)
         {
             List<EulerNode> inverted = new List<EulerNode>();
 
@@ -206,7 +206,15 @@ namespace Brieffreund.Routemap
 
                 inverted.Add(node);
                 connectionCreator.CreateConnectionsDeadEnd(node, out int[] cons, out int[] opp);
-                connections[node.Index] = opp;
+                int[] target = useOppositeConnections ? opp : cons;
+
+                //The node already has the wanted connections (e.g. it was never inverted), so neither the score nor the loops change
+                if (connections[node.Index].SequenceEqual(target))
+                {
+                    continue;
+                }
+
+                connections[node.Index] = target;
                 nodeScores[node.Index] = node.PassingCircumference - nodeScores[node.Index];
 
                 foreach (PathLoop loop in nodeToLoops[node.Index].ToList())
