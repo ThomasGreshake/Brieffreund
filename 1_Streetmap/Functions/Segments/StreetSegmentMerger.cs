@@ -38,7 +38,7 @@ namespace Brieffreund.Streetmap.Functions
 
                 StreetSegment one = inter.Segments.First();
                 StreetSegment two = inter.Segments.Last();
-                if (one.IsActive != two.IsActive || (one.IsActive && one.RestrictedAccess != two.IsActive && two.RestrictedAccess))
+                if (one.IsActive != two.IsActive || (one.IsActive && one.RestrictedAccess != two.RestrictedAccess))
                 {
                     continue;
                 }

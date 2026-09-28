@@ -183,7 +183,7 @@ namespace Brieffreund.Routemap.Functions
                     for (int j = 0; j < _nodes.Count; j++)
                     {
                         EulerNode other = _nodes[j];
-                        if (!_nodeLoops.Contains(other) && _singleLoops.ContainsKey(other) && !other.HasStorages)
+                        if (!_nodeLoops.Contains(other) && !_singleLoops.ContainsKey(other) && !other.HasStorages)
                         {
                             continue;
                         }
@@ -487,7 +487,7 @@ namespace Brieffreund.Routemap.Functions
                 AddMailInfo(loop, mailSinceStorage, mailTowardsStorage);
             }
 
-            float averageMail = _map.Streetmap.TotalMailAmount / (desiredCount + 1);
+            float averageMail = (float)_map.Streetmap.TotalMailAmount / (desiredCount + 1);
             float acceptableMail = averageMail * Math.Max(Constants.ACCEPTABLE_MAILAMOUNT_MULTIPLIER * 0.8f, 1);
             float inacceptableMail = averageMail * Math.Max(Constants.INACCEPTABLE_MULTIPLIER * 0.8f, 1);
 

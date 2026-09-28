@@ -87,7 +87,7 @@ namespace Brieffreund.Streetmap.Osm
             {
                 if (e is FileNotFoundException)
                 {
-                    AnsiConsole.WriteLine("[red]Die Osm-Daten konnten nicht gefunden werden.[/]");
+                    AnsiConsole.MarkupLine("[red]Die Osm-Daten konnten nicht gefunden werden.[/]");
                 }
                 else
                 {
@@ -100,7 +100,7 @@ namespace Brieffreund.Streetmap.Osm
 
             if (nodes.Count < sampleCount / 2)
             {
-                AnsiConsole.WriteLine("[red]Die Osm-Daten enthalten nicht genug Informationen über den Bezirk.[/]");
+                AnsiConsole.MarkupLine("[red]Die Osm-Daten enthalten nicht genug Informationen über den Bezirk.[/]");
                 _success = false;
                 return;
             }
@@ -347,6 +347,15 @@ namespace Brieffreund.Streetmap.Osm
 
                     nodes.RemoveAll(n => !_nodes.ContainsKey(n));
 
+                    //Removing nodes outside the borders can make two equal nodes consecutive, which would create a path from a node to itself
+                    for (int i = nodes.Count - 1; i > 0; i--)
+                    {
+                        if (nodes[i] == nodes[i - 1])
+                        {
+                            nodes.RemoveAt(i);
+                        }
+                    }
+
                     if (nodes.Count == 0)
                     {
                         continue;
@@ -424,7 +433,8 @@ namespace Brieffreund.Streetmap.Osm
                 {
                     continue;
                 }
-                if (reader.Name == "nd" && long.TryParse(reader.GetAttribute("ref"), out long nodeId) && !nodes.Contains(nodeId))
+                //Only consecutive duplicates are skipped, a closed way has to keep its closing node
+                if (reader.Name == "nd" && long.TryParse(reader.GetAttribute("ref"), out long nodeId) && (nodes.Count == 0 || nodes[nodes.Count - 1] != nodeId))
                 {
                     nodes.Add(nodeId);
                 }

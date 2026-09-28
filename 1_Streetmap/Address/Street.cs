@@ -86,7 +86,8 @@ namespace Brieffreund
             if (!string.IsNullOrEmpty(addonPart) && addonPart.Any(Char.IsLetter))
             {
                 char add = addonPart.First(Char.IsLetter);
-                addon = Math.Clamp(PositionInAlphabet(add), 0, Constants.ADDRESS_ADDON_RANGE);
+                //ADDRESS_ADDON_RANGE - 1 is reserved for number ranges, anything above would collide with the next number
+                addon = Math.Clamp(PositionInAlphabet(add), 0, Constants.ADDRESS_ADDON_RANGE - 2);
             }
             else
             {

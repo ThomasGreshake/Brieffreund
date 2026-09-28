@@ -1339,7 +1339,7 @@ namespace Brieffreund.Streetmap.Functions
                 }
 
                 List<Building> close =
-                    neighbours[current].Where(b => b.Street == current.Street && b.Number - current.Number < 10).ToList();
+                    neighbours[current].Where(b => b.Street == current.Street && b.IsEven == current.IsEven && Math.Abs(b.Number - current.Number) < 10).ToList();
                 if (close.Count == 0)
                 {
                     continue;
@@ -1381,6 +1381,9 @@ namespace Brieffreund.Streetmap.Functions
 
                     pathScores[buildingPath] *= multiplier;
                 }
+
+                //Later conflicts must see where this building belongs now, not where it was cast before
+                _casts[current] = pathScores.MinBy(kvp => kvp.Value).Key;
             }
         }
     }

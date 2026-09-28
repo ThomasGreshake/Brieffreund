@@ -228,12 +228,12 @@ namespace Brieffreund.Streetmap.Functions
                 segmentsToCut.Add(segment);
             }
 
-            List<Tuple<StreetPath, bool>> pathsToCut = new();
-            if (pathsToCut.Count == 0)
+            if (segmentsToCut.Count == 0)
             {
                 return false;
             }
 
+            List<Tuple<StreetPath, bool>> pathsToCut = new();
             List<StreetSegment> toRemove = new();
             foreach (var segment in segmentsToCut)
             {

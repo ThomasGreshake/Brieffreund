@@ -158,7 +158,7 @@ namespace Brieffreund
                 RouteNode to = routeNodes.First(n => ConnectsDirectly(n.Pointer, ways[i + 1].GetOppositeDirection()));
                 if (from == to)
                 {
-                    return;
+                    continue;
                 }
 
                 RoutePath forward = RoutePath.Create(this, from, to, RoutePathType.SingleConnection, _paths.Count, null);

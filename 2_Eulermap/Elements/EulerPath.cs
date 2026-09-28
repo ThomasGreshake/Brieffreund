@@ -97,11 +97,16 @@ namespace Brieffreund
                 }
 
                 List<EulerPath> paths = map.GetPaths(segment).ToList();
+                int leftIndex = 0, rightIndex = 0;
                 foreach (EulerPath path in paths)
                 {
-                    int amount = path._fromLeft == true ? segment.LeftMailAmount : segment.RightMailAmount;
-                    int divider = paths.Count(p => p._fromLeft == path._fromLeft);
-                    path._mailAmount = amount / divider;
+                    bool left = path._fromLeft == true;
+                    int amount = left ? segment.LeftMailAmount : segment.RightMailAmount;
+                    int divider = paths.Count(p => (p._fromLeft == true) == left);
+                    int index = left ? leftIndex++ : rightIndex++;
+
+                    //The remainder is spread over the first paths, so no mail gets lost to the integer division
+                    path._mailAmount = amount / divider + (index < amount % divider ? 1 : 0);
                 }
             }
         }

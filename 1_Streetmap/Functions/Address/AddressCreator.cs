@@ -124,9 +124,8 @@ namespace Brieffreund.Streetmap.Functions
         {
             bPath = null;
 
-            if (!Street.FullnumberToNumberId(num, out int numId))
+            if (!Street.FullnumberToNumberId(num, out int numId)) //Reported by EstimateAddress, which is always tried next
             {
-                _failed.Add(Tuple.Create(street.Name + " " + num, AddressFailureReason.Number));
                 return false;
             }
 
@@ -156,6 +155,7 @@ namespace Brieffreund.Streetmap.Functions
 
             bool isEven = Street.NumberIdToNumber(numId) % 2 == 0;
             bool leftSide = isEven;
+            float percOnPath;
 
             if (_castData.TryGetValue(street, out List<Tuple<Building, StreetPath>>? list) && list.Count > 0) //Same as EstimateBuilding but needed here for storages
             {
@@ -169,27 +169,49 @@ namespace Brieffreund.Streetmap.Functions
                     return true;
                 }
 
+                //Only the other side of the street has buildings: place the address opposite of the one with the closest number
                 tuple = list.MinBy(t => Math.Abs(t.Item1.NumberId - numId));
                 if (tuple != null)
                 {
                     path = tuple.Item2;
                     leftSide = !tuple.Item2.IsLeftOfPath(tuple.Item1.Position);
+                    percOnPath = path.PercentageOnPath(tuple.Item1.Position);
+                    position = path.Lerp(percOnPath) + 10 * (leftSide ? 1 : -1) * MyMath.Perpendicular(path.Direction);
+                    return true;
                 }
             }
 
+            path = _map.Paths.Where(p => p.Street == street).MaxBy(p => p.Length);
             if (path == null)
             {
-                path = _map.Paths.Where(p => p.Street == street).MaxBy(p => p.Length);
-                if (path == null)
+                _failed.Add(Tuple.Create(street.Name + " " + num, AddressFailureReason.Street));
+                return false;
+            }
+
+            percOnPath = EstimatePercentageOnStreet(street, numId);
+            position = path.Lerp(percOnPath) + 10 * (leftSide ? 1 : -1) * MyMath.Perpendicular(path.Direction);
+            return true;
+        }
+
+        //Where the number lies between the lowest and highest number of the street given in the input
+        private float EstimatePercentageOnStreet(Street street, int numId)
+        {
+            int min = numId;
+            int max = numId;
+
+            if (_input.MailAddresses.TryGetValue(street, out IList<string>? numbers))
+            {
+                foreach (string number in numbers)
                 {
-                    _failed.Add(Tuple.Create(street.Name + " " + num, AddressFailureReason.Street));
-                    return false;
+                    if (Street.FullnumberToNumberId(number, out int id))
+                    {
+                        min = Math.Min(min, id);
+                        max = Math.Max(max, id);
+                    }
                 }
             }
 
-            Vector2 perp = MyMath.Perpendicular(path.Direction);
-            position = path.Lerp(numId / 1024f) + 10 * (leftSide ? perp : -perp);
-            return true;
+            return max == min ? 0.5f : (float)(numId - min) / (max - min);
         }
 
         private float EstimateMailAmount(Building building) // 100 should be the rough average for a home address

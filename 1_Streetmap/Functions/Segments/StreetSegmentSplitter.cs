@@ -110,7 +110,7 @@ namespace Brieffreund.Streetmap.Functions
                 {
                     longestDiff = leftDiff;
                     startNode = leftStartNode;
-                    endNode = rightStartNode;
+                    endNode = leftEndNode;
                 }
                 else
                 {
@@ -184,7 +184,7 @@ namespace Brieffreund.Streetmap.Functions
                 }
             }
 
-            address = mail[mail.Count - 1];
+            address = leftSide == null ? mail[mail.Count - 1] : mail.Last(m => m.LeftOfPath == leftSide);
             float endDiff = GetFromToLength(segment, address, false);
             if (endDiff > longestDiff)
             {

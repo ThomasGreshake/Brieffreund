@@ -89,7 +89,11 @@ namespace Brieffreund
             }
             if (_forcedSinglePathing)
             {
-                _forcedSinglePathing = false;
+                //Skipped duplicates in between must not use up the flag, it belongs to the next valid path on the same segment
+                if (!_skipDuplicate[currentIndex])
+                {
+                    _forcedSinglePathing = false;
+                }
                 return new();
             }
 

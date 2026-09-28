@@ -59,8 +59,6 @@ namespace Brieffreund.Streetmap
                 return false;
             }
 
-            _totalArea += building._totalArea;
-
             if (Vector2.Distance(_entrancePosition, building._entrancePosition) > 60)
             {
                 _entrancePosition = _totalArea > building._totalArea ? _entrancePosition : building._entrancePosition;
@@ -71,6 +69,8 @@ namespace Brieffreund.Streetmap
                     (building._entrancePosition * building._surfaceArea * building._surfaceArea + _entrancePosition * _surfaceArea * _surfaceArea)
                     / (building._surfaceArea * building._surfaceArea + _surfaceArea * _surfaceArea);
             }
+
+            _totalArea += building._totalArea;
 
             Collider.Merge(building.Collider);
             return true;

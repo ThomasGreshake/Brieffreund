@@ -53,7 +53,7 @@ namespace Brieffreund.Streetmap.Functions
             }
 
             StreetPath next = GetOther(reverse ? path.From : path.To, path);
-            if (path.IsActive != next.IsActive || (path.IsActive && path.RestrictedAccess != next.IsActive && next.RestrictedAccess))
+            if (path.IsActive != next.IsActive || (path.IsActive && path.RestrictedAccess != next.RestrictedAccess))
             {
                 return;
             }

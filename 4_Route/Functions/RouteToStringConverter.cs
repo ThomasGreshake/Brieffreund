@@ -145,9 +145,9 @@ namespace Brieffreund.Printer.Functions
         private static bool IsAscending(IList<Address> addresses, int index)
         {
             Address address = addresses[index];
-            int max = Math.Max(index, addresses.Count - index);
+            int max = Math.Max(index, addresses.Count - 1 - index);
 
-            for (int i = 1; i < max; i++)
+            for (int i = 1; i <= max; i++)
             {
                 int upperIndex = index + i;
                 if (upperIndex < addresses.Count)
@@ -160,7 +160,7 @@ namespace Brieffreund.Printer.Functions
                 }
 
                 int lowerIndex = index - i;
-                if (lowerIndex > 0)
+                if (lowerIndex >= 0)
                 {
                     Address lower = addresses[lowerIndex];
                     if (IsComparable(lower, address))

@@ -454,8 +454,8 @@ namespace Brieffreund.Streetmap.Osm
         {
             NodeFlags flags = NodeFlags.None;
 
-            if ((osmNode.Flags.TryGetValue("crossing", out string? traffic_signals) || osmNode.Flags.TryGetValue("highway", out traffic_signals))
-                && traffic_signals == "traffic_signals")
+            if ((osmNode.Flags.TryGetValue("crossing", out string? crossing) && crossing == "traffic_signals")
+                || (osmNode.Flags.TryGetValue("highway", out string? highway) && highway == "traffic_signals"))
             {
                 flags |= NodeFlags.TrafficSignals;
             }
@@ -675,7 +675,7 @@ namespace Brieffreund.Streetmap.Osm
         private static Vector2 GetEntrancePosition(OsmFile file, IList<long> nodes, IList<Vector2> positions)
         {
             List<Tuple<Vector2, int>> entrances = new();
-            foreach (long node in nodes)
+            foreach (long node in nodes.Distinct())
             {
                 if (!file.TryGetNode(node, out OsmNode? osmNode) || osmNode == null || !osmNode.Flags.TryGetValue("entrance", out string? entrance) || entrance == "no")
                 {
