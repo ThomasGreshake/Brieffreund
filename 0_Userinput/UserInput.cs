@@ -88,7 +88,10 @@ namespace Brieffreund.Input
                     AnsiConsole.MarkupLine("[green]Die Bezirks-Datei wurde eingelesen (" + input._mailAddresses.Values.Sum(l => l.Count).ToString()
                     + " Adressen, " + input._storages.Count.ToString() + " Ablagen).[/]");
 
-                    input.AskForSearchDepth();
+                    if (settings.SearchDepth <= 0)
+                    {
+                        input.AskForSearchDepth();
+                    }
 
                     return input;
                 }
@@ -219,7 +222,7 @@ namespace Brieffreund.Input
             }
             if (settings.DoNotCrossAlleys != null)
             {
-                _doNotCrossAlleys = settings.DoNotCrossAlleys == "j";
+                ReadAlley(settings.DoNotCrossAlleys);
             }
             if (settings.CompareAnalysis)
             {

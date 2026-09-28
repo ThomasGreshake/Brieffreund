@@ -2,10 +2,14 @@
 
 using Brieffreund.Eulermap;
 using Brieffreund.Eulermap.Functions;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
 namespace Brieffreund.Routegenerator
 {
+    //Either a completed route or the branches following a leaf
+    internal readonly record struct RouteExpansion(RouteLeaf? CompletedRoute, List<(RouteLeaf Leaf, RoutePathway Added)> Branches);
+
     internal class RouteGenerator
     {
         //Data --------------------------------------------------------------------
@@ -17,22 +21,21 @@ namespace Brieffreund.Routegenerator
         private readonly RouteGeneratorManager _generator;
 
         private float _currentScore;
-        private readonly PriorityQueue<RouteLeaf, float> _queue = new(1024);
+        private readonly PriorityQueue<RouteLeaf, (float Score, long Order)> _queue = new(1024); //Order makes ties deterministic
+        private long _enqueueCount = 0;
         internal int Count => _queue.Count;
         internal float ComplexityScore => _currentScore * (float)Math.Log(_queue.Count + 1);
-
-        private int _workingCores = 0;
-        internal int WorkingCores => _workingCores;
-        internal float PickingScore => _currentScore * (float)Math.Log(_workingCores + 1);
 
         private readonly BigInteger _eulerPathSignature;
         private readonly Dictionary<BigInteger, float> _scores = new(8192);
         internal int ScoreCount => _scores.Count;
 
-        private readonly object _lock = new object();
-
         private RouteLeaf? _finalRoute = null;
         internal RouteLeaf? FinalRoute => _finalRoute;
+
+        //Also set when the search is abandoned because another map already has a better route
+        private bool _isFinished = false;
+        internal bool IsFinished => _isFinished;
 
         //Setup --------------------------------------------------------------------
 
@@ -59,14 +62,18 @@ namespace Brieffreund.Routegenerator
             foreach (RoutePathway way in options)
             {
                 RouteLeaf initial = new(way);
-                _queue.Enqueue(initial, initial.Score);
+                Enqueue(initial);
                 UpdateScores(initial, way);
             }
 
-            int qCount = 4 * Math.Max(Constants.THREAD_COUNT, 8);
-            while (_queue.Count > 0 && _queue.Count < qCount && _finalRoute == null)
+            while (_queue.Count > 0 && _queue.Count < Constants.INITIAL_ROUTE_QUEUE_COUNT && !_isFinished)
             {
-                ProcessNext(options);
+                if (!TryDequeue(out RouteLeaf? leaf))
+                {
+                    break;
+                }
+
+                Merge(Expand(leaf));
             }
         }
 
@@ -79,85 +86,82 @@ namespace Brieffreund.Routegenerator
 
         //Internals --------------------------------------------------------------------
 
-        internal bool ProcessNext(List<RoutePathway> options)
+        //Must not be called concurrently with Merge. Returns false if this generator is finished
+        internal bool TryDequeue([NotNullWhen(true)] out RouteLeaf? leaf)
         {
-            float minScore;
-
-            bool returnValue = false;
-            lock (_lock)
+            leaf = null;
+            if (_isFinished || !_queue.TryDequeue(out RouteLeaf? current, out _))
             {
-                _workingCores += 1;
+                return false;
             }
 
-            do
+            _currentScore = current.Score;
+
+            RouteLeaf? globalRoute = _generator.FinalLeaf;
+            if (globalRoute != null && (globalRoute.Score < current.Score || _queue.Count > Constants.EARLY_RETURN_COUNT))
             {
-                RouteLeaf current;
-                lock (_lock)
-                {
-                    if (_queue.Count == 0)
-                    {
-                        break;
-                    }
-
-                    current = _queue.Dequeue();
-                    _currentScore = current.Score;
-                }
-
-                RouteLeaf? globalRoute = _generator.FinalLeaf;
-                if (globalRoute != null && (globalRoute.Score < current.Score || _queue.Count > Constants.EARLY_RETURN_COUNT))
-                {
-                    SetFinalRoute(globalRoute);
-                    break;
-                }
-
-                RouteMap map = current.Map;
-
-                GetOptions(current, options);
-
-                if (options.Count == 0)
-                {
-                    if (current.Routenode != map.StartAndEnd[1])
-                    {
-                        throw new InvalidOperationException($"Bad route end: route ran out of options at {current.Routenode.Position} instead of at the end node {map.StartAndEnd[1].Position}.");
-                    }
-
-                    SetFinalRoute(current);
-                    returnValue = true;
-                    break;
-                }
-
-                minScore = float.MaxValue;
-                float baseLength = GetBaseLength(current);
-
-                for (int i = 0; i < options.Count; i++)
-                {
-                    RouteLeaf branch = (i == options.Count - 1) ? current : new(current);
-                    RoutePathway next = options[i];
-                    float newTotal = GetNewTotalLength(branch, next, baseLength);
-                    branch.AddNext(next, _input, newTotal);
-
-                    if (!UpdateScores(branch, next))
-                    {
-                        continue;
-                    }
-
-                    minScore = Math.Min(minScore, branch.Score);
-
-                    lock (_lock)
-                    {
-                        _queue.Enqueue(branch, branch.Score);
-                    }
-                }
-            }
-            while (_finalRoute != null && minScore < _finalRoute.Score); //Prevents a race condition
-
-            lock (_lock)
-            {
-                _workingCores -= 1;
+                _isFinished = true;
+                return false;
             }
 
-            return returnValue;
+            leaf = current;
+            return true;
         }
+
+        //Does not change the state of the generator, so it may run in parallel
+        internal RouteExpansion Expand(RouteLeaf current)
+        {
+            RouteMap map = current.Map;
+
+            List<RoutePathway> options = new(8);
+            GetOptions(current, options);
+
+            List<(RouteLeaf Leaf, RoutePathway Added)> branches = new(options.Count);
+
+            if (options.Count == 0)
+            {
+                if (current.Routenode != map.StartAndEnd[1])
+                {
+                    throw new InvalidOperationException($"Bad route end: route ran out of options at {current.Routenode.Position} instead of at the end node {map.StartAndEnd[1].Position}.");
+                }
+
+                return new RouteExpansion(current, branches);
+            }
+
+            float baseLength = GetBaseLength(current);
+
+            for (int i = 0; i < options.Count; i++)
+            {
+                RouteLeaf branch = (i == options.Count - 1) ? current : new(current);
+                RoutePathway next = options[i];
+                float newTotal = GetNewTotalLength(branch, next, baseLength);
+                branch.AddNext(next, _input, newTotal);
+                branches.Add((branch, next));
+            }
+
+            return new RouteExpansion(null, branches);
+        }
+
+        //Must not be called concurrently with TryDequeue or Merge
+        internal void Merge(RouteExpansion expansion)
+        {
+            if (expansion.CompletedRoute != null)
+            {
+                SetFinalRoute(expansion.CompletedRoute);
+                _generator.SetFinalRoute(expansion.CompletedRoute);
+                return;
+            }
+
+            foreach ((RouteLeaf branch, RoutePathway added) in expansion.Branches)
+            {
+                if (UpdateScores(branch, added))
+                {
+                    Enqueue(branch);
+                }
+            }
+        }
+
+        private void Enqueue(RouteLeaf leaf) => _queue.Enqueue(leaf, (leaf.Score, _enqueueCount++));
 
         private float GetBaseLength(RouteLeaf leaf)
         {
@@ -273,12 +277,10 @@ namespace Brieffreund.Routegenerator
 
         private void SetFinalRoute(RouteLeaf route)
         {
-            lock (_lock)
+            _isFinished = true;
+            if (_finalRoute == null || _finalRoute.Score > route.Score)
             {
-                if (_finalRoute == null || _finalRoute.Score > route.Score)
-                {
-                    _finalRoute = route;
-                }
+                _finalRoute = route;
             }
         }
 
@@ -292,16 +294,13 @@ namespace Brieffreund.Routegenerator
             BigInteger signature = leaf.Signature & _eulerPathSignature;
             float score = leaf.Score;
 
-            lock (_lock)
+            if (!_scores.TryGetValue(signature, out float currentScore) || score < currentScore)
             {
-                if (!_scores.TryGetValue(signature, out float currentScore) || score < currentScore)
-                {
-                    _scores[signature] = score;
-                    return true;
-                }
-
-                return false;
+                _scores[signature] = score;
+                return true;
             }
+
+            return false;
         }
     }
 }

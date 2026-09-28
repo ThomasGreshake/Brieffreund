@@ -11,8 +11,6 @@ namespace Brieffreund.Routegenerator
         internal int TreeCount => _generators.Sum(d => d.ScoreCount);
         internal int Count => _generators.Sum(d => d.Count);
 
-        private object _lock = new();
-
         private RouteLeaf? _finalLeaf = null;
         internal RouteLeaf? FinalLeaf => _finalLeaf;
 
@@ -29,74 +27,66 @@ namespace Brieffreund.Routegenerator
         {
             foreach (RouteMap map in _maps)
             {
-                RouteGenerator generator = new RouteGenerator(_input, this, map);
-                _generators.Add(generator);
-                if (generator.FinalRoute != null)
-                {
-                    SetFinalRoute(generator.FinalRoute);
-                }
+                _generators.Add(new RouteGenerator(_input, this, map));
             }
 
-            int threadCount = Constants.THREAD_COUNT;
-            Thread[] threads = new Thread[threadCount];
-
-            for (int i = 0; i < threadCount; i++)
-            {
-                threads[i] = new Thread(Process);
-            }
-
-            for (int i = 0; i < threadCount; i++)
-            {
-                threads[i].Start();
-            }
-
-            Process();
-
-            for (int i = 0; i < threadCount; i++)
-            {
-                threads[i].Join();
-            }
+            Search();
 
             SetFinalLeafIndex();
 
             _maps.Clear();
         }
 
-        private void Process()
+        //Expands leaves in parallel rounds. Results are merged in round order, so the outcome does not depend on thread timing
+        private void Search()
         {
-            List<RoutePathway> options = new(8);
+            List<(RouteGenerator Generator, RouteLeaf Leaf)> round = new();
 
-            while (true)
+            while (FillRound(round))
             {
-                RouteGenerator? current = _generators.Where(r => r.FinalRoute == null && r.Count > 0).MinBy(r => r.PickingScore);
-                if (current == null)
-                {
-                    return;
-                }
+                RouteExpansion[] expansions = new RouteExpansion[round.Count];
+                ParallelRunner.For(round.Count, i => expansions[i] = round[i].Generator.Expand(round[i].Leaf));
 
-                if (!current.ProcessNext(options))
+                for (int i = 0; i < round.Count; i++)
                 {
-                    continue;
+                    round[i].Generator.Merge(expansions[i]);
                 }
-
-                RouteLeaf? final = current.FinalRoute;
-                if (final == null)
-                {
-                    throw new InvalidOperationException("Route generator reported completion but has no final route.");
-                }
-
-                SetFinalRoute(final);
             }
         }
 
-        private void SetFinalRoute(RouteLeaf route)
+        //Takes one leaf from each unfinished generator in turn, so that every map keeps being explored
+        private bool FillRound(List<(RouteGenerator Generator, RouteLeaf Leaf)> round)
         {
-            lock (_lock)
+            round.Clear();
+
+            List<RouteGenerator> active = _generators.Where(g => !g.IsFinished && g.Count > 0).ToList();
+            int size = Math.Max(Constants.SEARCH_ROUND_SIZE, active.Count);
+
+            while (round.Count < size && active.Count > 0)
             {
-                if (_finalLeaf == null || _finalLeaf.Score > route.Score)
+                for (int i = 0; i < active.Count && round.Count < size;)
                 {
-                    _finalLeaf = route;
+                    RouteGenerator generator = active[i];
+                    if (generator.TryDequeue(out RouteLeaf? leaf))
+                    {
+                        round.Add((generator, leaf));
+                        i++;
+                    }
+                    else
+                    {
+                        active.RemoveAt(i);
+                    }
                 }
+            }
+
+            return round.Count > 0;
+        }
+
+        internal void SetFinalRoute(RouteLeaf route)
+        {
+            if (_finalLeaf == null || _finalLeaf.Score > route.Score)
+            {
+                _finalLeaf = route;
             }
         }
 

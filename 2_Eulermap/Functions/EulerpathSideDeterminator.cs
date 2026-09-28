@@ -21,10 +21,11 @@ namespace Brieffreund.Eulermap.Functions
         private readonly IEulerMap _map;
         private readonly INodeConnectionCreator _connectionCreator;
 
+        private readonly record struct BranchExpansion(bool?[] Left, float LeftScore, bool?[] Right, float RightScore);
+
         private List<EulerPath> _currentGroup = new();
-        private PriorityQueue<bool?[], float> _queue = new();
-        private Dictionary<bool?[], float> _scores = new();
-        private readonly object _lock = new object();
+        private PriorityQueue<bool?[], (float Score, long Order)> _queue = new(); //Order makes ties deterministic
+        private long _enqueueCount = 0;
         private bool?[]? _result = null;
 
         internal EulerpathSideDeterminator(IEulerMap map, INodeConnectionCreator nodeConnectionCreator)
@@ -42,41 +43,21 @@ namespace Brieffreund.Eulermap.Functions
 
         private void DetermineNormalPathSides()
         {
-            int threadCount = Constants.THREAD_COUNT;
-            Thread[] threads = new Thread[threadCount];
             List<List<EulerPath>> groups = GetGroupings();
 
             foreach (List<EulerPath> group in groups)
             {
-                for (int i = 0; i < threadCount; i++)
-                {
-                    threads[i] = new Thread(Process);
-                }
-
                 Clear();
                 _currentGroup = group;
 
                 bool?[] initial = CreateInitialBranch();
                 Enqueue(initial, 8192);
-                SeedQueue(threadCount);
-
-                for (int i = 0; i < threadCount; i++)
-                {
-                    threads[i].Start();
-                }
-
-                Process();
-
-                for (int i = 0; i < threadCount; i++)
-                {
-                    threads[i].Join();
-                }
+                Search();
 
                 SetSidesOnMap();
             }
 
             _queue = new();
-            _scores = new();
             _currentGroup = new();
         }
 
@@ -91,20 +72,23 @@ namespace Brieffreund.Eulermap.Functions
 
             while (tinyPaths.Count > 0)
             {
-                EulerPath currentPath = tinyPaths[0];
+                int index = 0;
                 int uncertainCount = int.MaxValue;
+                bool?[] result = _result;
 
-                foreach (EulerPath path in tinyPaths)
+                for (int i = 0; i < tinyPaths.Count; i++)
                 {
-                    int count = path.From.Paths.Count(p => p.FromLeft == null) + path.To.Paths.Count(p => p.FromLeft == null);
+                    EulerPath path = tinyPaths[i];
+                    int count = path.From.Paths.Count(p => result[2 * p.Index] == null) + path.To.Paths.Count(p => result[2 * p.Index] == null);
                     if (count < uncertainCount)
                     {
-                        currentPath = path;
+                        index = i;
                         uncertainCount = count;
                     }
                 }
 
-                tinyPaths.Remove(currentPath);
+                EulerPath currentPath = tinyPaths[index];
+                tinyPaths.RemoveAt(index);
 
                 bool?[] leftBranch = CreateNewBranch(_result, currentPath, true);
                 bool?[] rightBranch = CreateNewBranch(_result, currentPath, false);
@@ -123,38 +107,40 @@ namespace Brieffreund.Eulermap.Functions
             SetSidesOnMap();
         }
 
-        private void Process()
+        //Expands the best branches in parallel rounds. Results are merged in queue order, so the outcome does not depend on thread timing
+        private void Search()
         {
+            List<(bool?[] Branch, float Score)> round = new(Constants.SEARCH_ROUND_SIZE);
+
             while (_queue.Count > 0 && _result == null)
             {
-                ProcessNext();
-            }
-        }
-
-        private void SeedQueue(int threadCount)
-        {
-            while (_queue.Count > 0 && _result == null && _queue.Count <= 2 * threadCount + 1)
-            {
-                ProcessNext();
-            }
-        }
-
-        private void ProcessNext()
-        {
-            bool?[] currentBranch;
-            float score;
-
-            lock (_lock)
-            {
-                if (_queue.Count == 0)
+                round.Clear();
+                while (round.Count < Constants.SEARCH_ROUND_SIZE && _queue.TryDequeue(out bool?[]? branch, out var priority))
                 {
-                    return;
+                    round.Add((branch, priority.Score));
                 }
 
-                currentBranch = _queue.Dequeue();
-                score = _scores[currentBranch];
-            }
+                BranchExpansion?[] expansions = new BranchExpansion?[round.Count];
+                ParallelRunner.For(round.Count, i => expansions[i] = Expand(round[i].Branch, round[i].Score));
 
+                for (int i = 0; i < round.Count; i++)
+                {
+                    BranchExpansion? expansion = expansions[i];
+                    if (expansion == null)
+                    {
+                        _result = round[i].Branch;
+                        return;
+                    }
+
+                    Enqueue(expansion.Value.Right, expansion.Value.RightScore);
+                    Enqueue(expansion.Value.Left, expansion.Value.LeftScore);
+                }
+            }
+        }
+
+        //Returns null if the branch is fully determined
+        private BranchExpansion? Expand(bool?[] currentBranch, float score)
+        {
             EulerPath? currentPath = null;
             foreach (EulerPath p in _currentGroup)
             {
@@ -167,22 +153,14 @@ namespace Brieffreund.Eulermap.Functions
 
             if (currentPath == null)
             {
-                lock (_lock)
-                {
-                    if (_result == null || _scores[_result] > score)
-                    {
-                        _result = currentBranch;
-                    }
-                }
-                return;
+                return null;
             }
 
             bool?[] leftBranch = CreateNewBranch(currentBranch, currentPath, true);
             bool?[] rightBranch = CreateNewBranch(currentBranch, currentPath, false);
             CalculateScores(currentBranch, leftBranch, rightBranch, score, currentPath, out float leftScore, out float rightScore);
 
-            Enqueue(rightBranch, rightScore);
-            Enqueue(leftBranch, leftScore);
+            return new BranchExpansion(leftBranch, leftScore, rightBranch, rightScore);
         }
 
         private List<List<EulerPath>> GetGroupings()
@@ -249,8 +227,8 @@ namespace Brieffreund.Eulermap.Functions
             if (leftScore + 0.001f > rightScore && rightScore + 0.001f > leftScore)
             {
                 IList<EulerPath> list = _map.GetPaths(path.Segment);
-                int leftCount = list.Count(p => oldBranch[2 * path.Index] == true && oldBranch[2 * path.Index + 1] == true);
-                int rightCount = list.Count(p => oldBranch[2 * path.Index] == false && oldBranch[2 * path.Index + 1] == false);
+                int leftCount = list.Count(p => oldBranch[2 * p.Index] == true && oldBranch[2 * p.Index + 1] == true);
+                int rightCount = list.Count(p => oldBranch[2 * p.Index] == false && oldBranch[2 * p.Index + 1] == false);
                 if (leftCount > rightCount)
                 {
                     leftScore += 0.001f;
@@ -262,14 +240,7 @@ namespace Brieffreund.Eulermap.Functions
             }
         }
 
-        private void Enqueue(bool?[] branch, float score)
-        {
-            lock (_lock)
-            {
-                _queue.Enqueue(branch, score);
-                _scores[branch] = score;
-            }
-        }
+        private void Enqueue(bool?[] branch, float score) => _queue.Enqueue(branch, (score, _enqueueCount++));
 
         private bool?[] CreateInitialBranch()
         {
@@ -308,7 +279,7 @@ namespace Brieffreund.Eulermap.Functions
         private void Clear()
         {
             _queue.Clear();
-            _scores.Clear();
+            _enqueueCount = 0;
             _result = null;
         }
 

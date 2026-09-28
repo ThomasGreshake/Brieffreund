@@ -61,6 +61,11 @@ namespace Brieffreund
 
         internal const int THREAD_COUNT = 8;
 
+        //Search nodes expanded in parallel per round. Must not depend on THREAD_COUNT, so that results do not depend on it either
+        internal const int SEARCH_ROUND_SIZE = 32;
+
+        internal const int INITIAL_ROUTE_QUEUE_COUNT = 32;
+
         internal const int STREET_PADDING_FOR_PRINT = 21;
 
         internal const int ADDRESS_LINE_LENGTH = 100;

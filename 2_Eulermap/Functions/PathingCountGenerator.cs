@@ -23,11 +23,12 @@ namespace Brieffreund.Eulermap.Functions
 {
     internal class PathingCountGenerator : IPathingCountGenerator
     {
+        private sealed record Expansion(List<(PathingCount[] Map, float Estimate)> Branches, Tuple<PathingCount[], float>? Completed);
+
         private readonly IStreetMap _map;
 
-        private readonly object _lock = new object();
-
-        private PriorityQueue<PathingCount[], float> _queue = new(1024);
+        private PriorityQueue<PathingCount[], (float Estimate, long Order)> _queue = new(1024); //Order makes ties deterministic
+        private long _enqueueCount = 0;
 
         private int _searchDepth = 0;
 
@@ -46,31 +47,12 @@ namespace Brieffreund.Eulermap.Functions
             _searchDepth = Constants.PATHINGCOUNT_SEARCHDEPTH_MULT * searchDepth;
             _completed.Clear();
             _result.Clear();
+            _enqueueCount = 0;
 
             PathingCount[] initial = CreateInitialMap();
-            Enqueue(initial);
+            Enqueue(initial, DeepLengthEstimate(initial));
 
-            int threadCount = Constants.THREAD_COUNT;
-            SeedQueue(threadCount);
-
-            Thread[] threads = new Thread[threadCount];
-
-            for (int i = 0; i < threadCount; i++)
-            {
-                threads[i] = new Thread(Process);
-            }
-
-            for (int i = 0; i < threadCount; i++)
-            {
-                threads[i].Start();
-            }
-
-            Process();
-
-            for (int i = 0; i < threadCount; i++)
-            {
-                threads[i].Join();
-            }
+            Search();
 
             _queue = new();
 
@@ -80,33 +62,40 @@ namespace Brieffreund.Eulermap.Functions
             }
         }
 
-        private void SeedQueue(int threadCount)
+        //Expands the best maps in parallel rounds. Results are merged in queue order, so the outcome does not depend on thread timing
+        private void Search()
         {
-            while (_queue.Count > 0 && _queue.Count <= threadCount * 2 + 1 && _completed.Count < _searchDepth)
-            {
-                ProcessNext();
-            }
-        }
+            List<PathingCount[]> round = new(Constants.SEARCH_ROUND_SIZE);
 
-        private void Process()
-        {
             while (_completed.Count < _searchDepth && _queue.Count > 0)
             {
-                ProcessNext();
+                round.Clear();
+                while (round.Count < Constants.SEARCH_ROUND_SIZE && _queue.TryDequeue(out PathingCount[]? map, out _))
+                {
+                    round.Add(map);
+                }
+
+                Expansion[] expansions = new Expansion[round.Count];
+                ParallelRunner.For(round.Count, i => expansions[i] = Expand(round[i]));
+
+                foreach (Expansion expansion in expansions)
+                {
+                    if (expansion.Completed != null)
+                    {
+                        AddToCompleted(expansion.Completed);
+                    }
+
+                    foreach ((PathingCount[] map, float estimate) in expansion.Branches)
+                    {
+                        Enqueue(map, estimate);
+                    }
+                }
             }
         }
 
-        private void ProcessNext()
+        private Expansion Expand(PathingCount[] current)
         {
-            PathingCount[] current;
-            lock (_lock)
-            {
-                if (_queue.Count == 0)
-                {
-                    return;
-                }
-                current = _queue.Dequeue();
-            }
+            List<(PathingCount[] Map, float Estimate)> branches = new(2);
 
             StreetSegment? segment = null;
             for (int i = 0; i < current.Length; i++)
@@ -124,14 +113,14 @@ namespace Brieffreund.Eulermap.Functions
                 if (isEven != false)
                 {
                     PathingCount[] even = CreateBranch(current, segment.Index, GetPathingCount(segment, true), isEven == null);
-                    Enqueue(even);
+                    branches.Add((even, DeepLengthEstimate(even)));
                 }
                 if (isEven != true)
                 {
                     PathingCount[] uneven = CreateBranch(current, segment.Index, GetPathingCount(segment, false), false);
-                    Enqueue(uneven);
+                    branches.Add((uneven, DeepLengthEstimate(uneven)));
                 }
-                return;
+                return new Expansion(branches, null);
             }
 
             RemoveUnreachable(current);
@@ -141,33 +130,23 @@ namespace Brieffreund.Eulermap.Functions
                 throw new InvalidOperationException("Fully determined pathing counts do not produce an even graph.");
             }
 
-            AddToCompleted(Tuple.Create(current, GetLength(current)));
+            return new Expansion(branches, Tuple.Create(current, GetLength(current)));
         }
 
-        private void Enqueue(PathingCount[] map)
-        {
-            float length = DeepLengthEstimate(map);
-            lock (_lock)
-            {
-                _queue.Enqueue(map, length);
-            }
-        }
+        private void Enqueue(PathingCount[] map, float estimate) => _queue.Enqueue(map, (estimate, _enqueueCount++));
 
         private void AddToCompleted(Tuple<PathingCount[], float> item)
         {
-            lock (_lock)
+            for (int i = 0; i < _completed.Count; i++)
             {
-                for (int i = 0; i < _completed.Count; i++)
+                if (item.Item2 < _completed[i].Item2)
                 {
-                    if (item.Item2 < _completed[i].Item2)
-                    {
-                        _completed.Insert(i, item);
-                        return;
-                    }
+                    _completed.Insert(i, item);
+                    return;
                 }
-
-                _completed.Add(item);
             }
+
+            _completed.Add(item);
         }
 
         private bool IsEven(Intersection i, PathingCount[] map) =>
@@ -409,7 +388,7 @@ namespace Brieffreund.Eulermap.Functions
             {
                 Intersection inter = uneven[i];
                 IPathfinder<Intersection, SegmentPathway> path =
-                    new PathfinderMulti<Intersection, SegmentPathway>(inter, uneven.Where(i => i != inter), w => 1f);
+                    new PathfinderMulti<Intersection, SegmentPathway>(inter, uneven.Where(i => i != inter), w => w.Segment.IsActive ? 1f : -1f);
                 length += path.GetLength() / 2f;
             }
             return length;
