@@ -31,8 +31,7 @@ namespace Brieffreund.Streetmap.Functions
                 HashSet<StreetPath> set = new HashSet<StreetPath>() { path };
                 sets.Add(set);
 
-                AddToSet(set, path, path.From);
-                AddToSet(set, path, path.To);
+                AddToSet(set, path.From, path.To);
             }
 
             if (sets.Count == 1) { return true; }
@@ -53,14 +52,24 @@ namespace Brieffreund.Streetmap.Functions
             return true;
         }
 
-        private static void AddToSet(HashSet<StreetPath> set, StreetPath from, StreetNode to)
+        //Iterative, a recursive search can overflow the stack on large maps
+        private static void AddToSet(HashSet<StreetPath> set, params StreetNode[] starts)
         {
-            foreach (var path in to.Paths)
-            {
-                if (set.Contains(path)) { continue; }
+            List<StreetNode> front = new(starts);
 
-                set.Add(path);
-                AddToSet(set, path, path.GetOther(to));
+            while (front.Count > 0)
+            {
+                int index = front.Count - 1;
+                StreetNode node = front[index];
+                front.RemoveAt(index);
+
+                foreach (StreetPath path in node.Paths)
+                {
+                    if (set.Add(path))
+                    {
+                        front.Add(path.GetOther(node));
+                    }
+                }
             }
         }
     }

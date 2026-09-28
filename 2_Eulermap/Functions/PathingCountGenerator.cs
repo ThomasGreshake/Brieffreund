@@ -211,8 +211,7 @@ namespace Brieffreund.Eulermap.Functions
                 return null;
             }
 
-            List<Intersection> set = new();
-            CreateUndeterminedSet(segment, segment.From, set, map);
+            HashSet<Intersection> set = CreateUndeterminedSet(segment, segment.From, map);
 
             int count = set.Sum(i => IsEven(i, map) ? 0 : 1);
 
@@ -222,25 +221,34 @@ namespace Brieffreund.Eulermap.Functions
         private static float PathWeightFunc(SegmentPathway way, StreetSegment segment, PathingCount[] protoMap)
             => !way.Segment.IsActive || way.Segment == segment || protoMap[way.Segment.Index] != PathingCount.Undetermined ? -1 : 1;
 
-        private void CreateUndeterminedSet(StreetSegment test, Intersection inter, List<Intersection> set, PathingCount[] map)
+        //All intersections connected to start by undetermined segments other than test. Iterative, a recursive search can overflow the stack on large maps
+        private static HashSet<Intersection> CreateUndeterminedSet(StreetSegment test, Intersection start, PathingCount[] map)
         {
-            set.Add(inter);
+            HashSet<Intersection> set = new() { start };
+            List<Intersection> front = new() { start };
 
-            foreach (StreetSegment segment in inter.Segments.Where(s => s.IsActive))
+            while (front.Count > 0)
             {
-                if (map[segment.Index] != PathingCount.Undetermined || segment == test)
-                {
-                    continue;
-                }
+                int index = front.Count - 1;
+                Intersection inter = front[index];
+                front.RemoveAt(index);
 
-                Intersection other = segment.GetOther(inter);
-                if (set.Contains(other))
+                foreach (StreetSegment segment in inter.Segments.Where(s => s.IsActive))
                 {
-                    continue;
-                }
+                    if (map[segment.Index] != PathingCount.Undetermined || segment == test)
+                    {
+                        continue;
+                    }
 
-                CreateUndeterminedSet(test, other, set, map);
+                    Intersection other = segment.GetOther(inter);
+                    if (set.Add(other))
+                    {
+                        front.Add(other);
+                    }
+                }
             }
+
+            return set;
         }
 
         private PathingCount[] CreateBranch(PathingCount[] original, int index, PathingCount change, bool newBranch)
@@ -497,13 +505,27 @@ namespace Brieffreund.Eulermap.Functions
             }
         }
 
-        private static void GetAllReachable(Intersection inter, bool[] reachable, PathingCount[] map)
+        //Iterative, a recursive search can overflow the stack on large maps
+        private static void GetAllReachable(Intersection start, bool[] reachable, PathingCount[] map)
         {
-            foreach (StreetSegment seg in inter.Segments.Where(s => s.IsActive && !reachable[s.Index] && map[s.Index] != PathingCount.NoPath))
+            List<Intersection> front = new() { start };
+
+            while (front.Count > 0)
             {
-                reachable[seg.Index] = true;
-                Intersection other = seg.GetOther(inter);
-                GetAllReachable(other, reachable, map);
+                int index = front.Count - 1;
+                Intersection inter = front[index];
+                front.RemoveAt(index);
+
+                foreach (StreetSegment seg in inter.Segments)
+                {
+                    if (!seg.IsActive || reachable[seg.Index] || map[seg.Index] == PathingCount.NoPath)
+                    {
+                        continue;
+                    }
+
+                    reachable[seg.Index] = true;
+                    front.Add(seg.GetOther(inter));
+                }
             }
         }
 

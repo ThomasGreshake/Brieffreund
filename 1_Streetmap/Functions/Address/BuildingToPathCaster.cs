@@ -379,10 +379,10 @@ namespace Brieffreund.Streetmap.Functions
                 StreetPath current = toCheck[toCheck.Count - 1];
 
                 List<Street> foundStreets = new();
-                List<StreetPath> set = new() { current };
+                HashSet<StreetPath> set = new() { current };
 
-                CreateConnectedSet(current, current.To, set, foundStreets);
-                CreateConnectedSet(current, current.From, set, foundStreets);
+                CreateConnectedSet(current.To, set, foundStreets);
+                CreateConnectedSet(current.From, set, foundStreets);
 
                 foreach (StreetPath path in set)
                 {
@@ -405,39 +405,45 @@ namespace Brieffreund.Streetmap.Functions
             IStreetIdentifier.Call(this);
         }
 
-        private void CreateConnectedSet(StreetPath from, StreetNode to, List<StreetPath> set, List<Street> foundStreets)
+        //Collects the unnamed paths connected to start, stopping at nodes with a (identified) street. Iterative, a recursive search can overflow the stack on large maps
+        private void CreateConnectedSet(StreetNode start, HashSet<StreetPath> set, List<Street> foundStreets)
         {
-            bool foundStreet = false;
-            foreach (StreetPath path in to.Paths)
+            List<StreetNode> front = new() { start };
+
+            while (front.Count > 0)
             {
-                Street? street = path.Street;
-                if (street == null && !_identified.TryGetValue(path, out street))
+                int index = front.Count - 1;
+                StreetNode node = front[index];
+                front.RemoveAt(index);
+
+                bool foundStreet = false;
+                foreach (StreetPath path in node.Paths)
+                {
+                    Street? street = path.Street;
+                    if (street == null && !_identified.TryGetValue(path, out street))
+                    {
+                        continue;
+                    }
+
+                    foundStreet = true;
+                    if (!foundStreets.Contains(street))
+                    {
+                        foundStreets.Add(street);
+                    }
+                }
+
+                if (foundStreet)
                 {
                     continue;
                 }
 
-                foundStreet = true;
-                if (!foundStreets.Contains(street))
+                foreach (StreetPath path in node.Paths)
                 {
-                    foundStreets.Add(street);
+                    if (set.Add(path))
+                    {
+                        front.Add(path.GetOther(node));
+                    }
                 }
-            }
-
-            if (foundStreet)
-            {
-                return;
-            }
-
-            foreach (StreetPath path in to.Paths)
-            {
-                if (set.Contains(path))
-                {
-                    continue;
-                }
-
-                set.Add(path);
-                StreetNode other = path.GetOther(to);
-                CreateConnectedSet(path, other, set, foundStreets);
             }
         }
 

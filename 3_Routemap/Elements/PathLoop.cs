@@ -124,26 +124,29 @@ namespace Brieffreund.Routemap
 
         private static void FollowPath(EulerPathway current, int[][] connections, List<EulerPathway> paths)
         {
-            paths.Add(current);
-
-            EulerNode nextNode = current.Towards;
-            int currentIndex = nextNode.Pathways.IndexOf(current.GetOppositeDirection());
-            int nextIndex = connections[nextNode.Index][currentIndex];
-            EulerPathway next = nextNode.Pathways[nextIndex];
-
-            if (current.GetOppositeDirection() == next)
+            while (true)
             {
-                Debug.Assert(nextNode.Intersection.IsEnd);
-                return;
-            }
+                paths.Add(current);
 
-            if (paths.Contains(next))
-            {
-                Debug.Assert(paths[0] == next);
-                return;
-            }
+                EulerNode nextNode = current.Towards;
+                int currentIndex = nextNode.Pathways.IndexOf(current.GetOppositeDirection());
+                int nextIndex = connections[nextNode.Index][currentIndex];
+                EulerPathway next = nextNode.Pathways[nextIndex];
 
-            FollowPath(next, connections, paths);
+                if (current.GetOppositeDirection() == next)
+                {
+                    Debug.Assert(nextNode.Intersection.IsEnd);
+                    return;
+                }
+
+                if (paths.Contains(next))
+                {
+                    Debug.Assert(paths[0] == next);
+                    return;
+                }
+
+                current = next;
+            }
         }
 
         private static PathLoop Create(List<EulerPathway> ways, bool isClosed, PathLoop[] pathToLoop, List<PathLoop>[] nodeToLoops)

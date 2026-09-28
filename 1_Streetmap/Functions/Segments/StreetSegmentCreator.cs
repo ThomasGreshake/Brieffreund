@@ -43,28 +43,33 @@ namespace Brieffreund.Streetmap.Functions
 
         private void FollowPath(StreetPath path, List<StreetPath> paths, bool reverse)
         {
-            if (reverse ? _map.IsIntersection(path.From) : _map.IsIntersection(path.To))
+            while (true)
             {
-                return;
-            }
-            if (reverse ? path.From.Count != 2 : path.To.Count != 2)
-            {
-                return;
-            }
+                if (reverse ? _map.IsIntersection(path.From) : _map.IsIntersection(path.To))
+                {
+                    return;
+                }
+                if (reverse ? path.From.Count != 2 : path.To.Count != 2)
+                {
+                    return;
+                }
 
-            StreetPath next = GetOther(reverse ? path.From : path.To, path);
-            if (path.IsActive != next.IsActive || (path.IsActive && path.RestrictedAccess != next.RestrictedAccess))
-            {
-                return;
-            }
+                StreetPath next = GetOther(reverse ? path.From : path.To, path);
+                if (path.IsActive != next.IsActive || (path.IsActive && path.RestrictedAccess != next.RestrictedAccess))
+                {
+                    return;
+                }
 
-            if (reverse ? path.From != next.To : path.To != next.From)
-            {
-                next.Reverse();
-            }
+                if (reverse ? path.From != next.To : path.To != next.From)
+                {
+                    next.Reverse();
+                }
 
-            if (!paths.Contains(next))
-            {
+                if (paths.Contains(next))
+                {
+                    return;
+                }
+
                 if (reverse)
                 {
                     paths.Insert(0, next);
@@ -73,7 +78,7 @@ namespace Brieffreund.Streetmap.Functions
                 {
                     paths.Add(next);
                 }
-                FollowPath(next, paths, reverse);
+                path = next;
             }
         }
 

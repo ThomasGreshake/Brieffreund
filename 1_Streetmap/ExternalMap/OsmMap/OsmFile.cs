@@ -74,7 +74,7 @@ namespace Brieffreund.Streetmap.Osm
                 addressCount += list.Count;
             }
 
-            int sampleCount = addressCount / 2;
+            int sampleCount = Math.Max(addressCount / 2, 1);
             HashSet<long> nodes;
             try
             {
@@ -98,14 +98,11 @@ namespace Brieffreund.Streetmap.Osm
                 return;
             }
 
-            if (nodes.Count < sampleCount / 2)
+            if (nodes.Count == 0 || nodes.Count < sampleCount / 2 || !FindPositionsOfNodesAndSetBorder(osmFileName, nodes, sampleCount))
             {
                 AnsiConsole.MarkupLine("[red]Die Osm-Daten enthalten nicht genug Informationen über den Bezirk.[/]");
                 _success = false;
-                return;
             }
-
-            FindPositionsOfNodesAndSetBorder(osmFileName, nodes, sampleCount);
         }
 
         private HashSet<long> FindNodesWithAddress(XmlReader reader, IUserInput input, int sampleCount)
@@ -172,7 +169,8 @@ namespace Brieffreund.Streetmap.Osm
             return sampleNodes;
         }
 
-        private void FindPositionsOfNodesAndSetBorder(string osmFileName, HashSet<long> nodes, int sampleCount)
+        //Returns false if none of the nodes could be found
+        private bool FindPositionsOfNodesAndSetBorder(string osmFileName, HashSet<long> nodes, int sampleCount)
         {
             List<Vector2> positions;
 
@@ -181,17 +179,23 @@ namespace Brieffreund.Streetmap.Osm
                 positions = FindPositionsOfNodesAndSetBorder(reader, nodes, sampleCount);
             }
 
+            if (positions.Count == 0)
+            {
+                return false;
+            }
+
             InitialiseBorderWithPosition(positions[0]);
             for (int i = 1; i < positions.Count; i++)
             {
                 IncludePositionInBorder(positions[i]);
             }
             AdjustBorder();
+            return true;
         }
 
         private List<Vector2> FindPositionsOfNodesAndSetBorder(XmlReader reader, HashSet<long> nodes, int sampleCount)
         {
-            int positionSampleCount = (sampleCount * 2) / 3;
+            int positionSampleCount = Math.Max((sampleCount * 2) / 3, 1);
             List<Vector2> positions = new(positionSampleCount);
             reader.MoveToContent();
             while (reader.Read())

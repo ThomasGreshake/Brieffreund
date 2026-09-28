@@ -176,19 +176,28 @@ namespace Brieffreund.Streetmap.Functions
             return 1048576f / ((int)way.Segment.Type + 3f);
         }
 
-        private void GetConnectedIntersections(Intersection inter, List<Intersection> set)
+        //The start is always the first element of the set. Iterative, a recursive search can overflow the stack on large maps
+        private void GetConnectedIntersections(Intersection start, List<Intersection> set)
         {
-            set.Add(inter);
+            HashSet<Intersection> seen = new() { start };
+            List<Intersection> front = new() { start };
+            set.Add(start);
 
-            foreach (StreetSegment seg in inter.Segments.Where(s => s.IsActive && HasFlag(s, InternalPathFlags.RequiredOnRoute)))
+            while (front.Count > 0)
             {
-                Intersection other = seg.GetOther(inter);
-                if (set.Contains(other))
-                {
-                    continue;
-                }
+                int index = front.Count - 1;
+                Intersection inter = front[index];
+                front.RemoveAt(index);
 
-                GetConnectedIntersections(other, set);
+                foreach (StreetSegment seg in inter.Segments.Where(s => s.IsActive && HasFlag(s, InternalPathFlags.RequiredOnRoute)))
+                {
+                    Intersection other = seg.GetOther(inter);
+                    if (seen.Add(other))
+                    {
+                        set.Add(other);
+                        front.Add(other);
+                    }
+                }
             }
         }
 
